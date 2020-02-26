@@ -1,0 +1,22 @@
+{
+  "name": "cqc-server",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "start:local": "PORT=3001 node index.js",
+    "Xstart": "CQC_DBNAME=$CQC_DBNAME_PROD CQC_DBURI=$CQC_DBURI_PROD CQC_DBUSER=$CQC_DBUSER_PROD CQC_DBPASSWORD=$CQC_DBPASSWORD_PROD node -r dotenv/config index.js",
+    "Xstart:local": "CQC_DBNAME=$CQC_DBNAME_STAGING CQC_DBURI=$CQC_DBURI_STAGING CQC_DBUSER=$CQC_DBUSER_STAGING CQC_DBPASSWORD=$CQC_DBPASSWORD_STAGING PORT=3003 node -r dotenv/config index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^8.2.0",
+    "express": "^4.17.1",
+    "mongodb": "^3.5.2",
+    "node-bugcatcher": "^1.0.27"
+  }
+}
