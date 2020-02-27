@@ -11,6 +11,7 @@ const {
 
 // Connection URL
 const mongoUri = `mongodb://${dbUser}:${encodeURIComponent(dbPassword)}@${dbUri}`
+console.log({mongoUri})
 
 module.exports = {
   mongoConnect: (fn) => {
