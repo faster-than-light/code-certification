@@ -31,7 +31,7 @@ app.get('/', (req, res) => {
 // test db connection
 app.get('/test/:param1/:param2', async (req, res) => {
   try {
-    await api.testConnect()
+    await api.testConnection()
     res.send({ ...req.params, query: req.query })
   } catch (err) { return apiError(err, res) }
 })
