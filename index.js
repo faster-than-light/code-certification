@@ -3,10 +3,13 @@ const cors = require('cors')
 const express = require('express')
 const app = express()
 const port = process.env.PORT || 3000
+const bodyParser = require('body-parser')
 const api = require('./src/api')
 
 // middleware
 app.use(express.json())
+app.use(bodyParser.json({limit: '150mb', extended: true}))
+app.use(bodyParser.urlencoded({limit: '150mb', extended: true}))
 app.use(cors())
 
 // error handling
@@ -54,6 +57,7 @@ app.get('/results/:id', async (req, res) => {
 
 // put pdf data
 app.put('/pdf', async (req, res) => {
+  console.log("length=",JSON.stringify(req.body).length)
   try {
     const putPDF = await api.putPDF(req.body)
     res.send(putPDF)
