@@ -66,7 +66,6 @@ async function putResults(results) {
 
   // remove sensitive user info
   results.user = results.user.email
-  console.log(results)
 
   // db function
   const fn = async (db, promise) => {
