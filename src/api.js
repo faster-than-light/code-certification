@@ -65,7 +65,7 @@ async function putResults(results) {
   if (!validUser) throw new Error(`Invalid token for user ${results.user.email}`)
 
   // remove sensitive user info
-  results.user = results.user.email
+  results.user = { email: results.user.email }
 
   // db function
   const fn = async (db, promise) => {
