@@ -187,7 +187,7 @@ async function putJobs(data) {
 
   // validation
   if (!data || !jobs || !userObject) return
-  if (!Array.isArray(jobs) || typeof userObject != 'object' ) return
+  if (!Array.isArray(jobs) || typeof userObject !== 'object' ) return
 
   // verify the user and sid
   const user = await checkUser(userObject)
@@ -226,6 +226,39 @@ async function putJobs(data) {
 }
 
 /**
+ * @title getJobs
+ * @dev Returns saved jobs
+ * 
+ * @param {object} user User object containing `sid`
+ * 
+ * @returns {array} Results
+ */
+async function getJobs(user) {
+
+  // validation
+  if (!user || typeof user !== 'object' || !user.email || !user.sid) {
+    throw new Error(`invalid user`)
+  }
+
+  // verify the user and sid
+  const verifiedUser = await checkUser(user)
+  if (!verifiedUser) throw new Error(`Invalid token for user ${user.email}`)
+
+  const fn = async (db, promise) => {
+    const jobsCollection = db.collection('jobs')
+    let jobs = await jobsCollection.find({
+      "user.email": user.email
+    }).toArray().catch(promise.reject)
+    console.log(jobs)
+    if (jobs) {
+      jobs.forEach(j => { delete j.user })
+      promise.resolve(jobs)
+    }
+  }
+  return mongoConnect(fn)
+}
+
+/**
  * @title checkUser
  * @dev Query the BugCatcher server to confirm the `user.email` matches the `sid`
  * 
@@ -251,6 +284,7 @@ async function checkUser(user) {
 }
 
 module.exports = {
+  getJobs,
   getPDF,
   getResults,
   putJobs,

@@ -75,5 +75,12 @@ app.put('/jobs', async (req, res) => {
   } catch (err) { return apiError(err, res) }
 })
 
+// get jobs
+app.get('/jobs', async (req, res) => {
+  try {
+    res.send(await api.getJobs(req.body))
+  } catch (err) { return apiError(err, res) }
+})
+
 // init
 app.listen(port, () => console.log(`Example app listening on port ${port}!`))
