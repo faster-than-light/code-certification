@@ -42,16 +42,14 @@ app.get('/test/:param1/:param2', async (req, res) => {
 // put results
 app.put('/results', async (req, res) => {
   try {
-    const putResults = await api.putResults(req.body)
-    res.send(putResults)
+    res.send(await api.putResults(req.body))
   } catch (err) { return apiError(err, res) }
 })
 
 // get results
 app.get('/results/:id', async (req, res) => {
   try {
-    const getResults = await api.getResults(req.params)
-    res.send(getResults)
+    res.send(await api.getResults(req.params))
   } catch (err) { return apiError(err, res) }
 })
 
@@ -59,16 +57,21 @@ app.get('/results/:id', async (req, res) => {
 app.put('/pdf', async (req, res) => {
   console.log("length=",JSON.stringify(req.body).length)
   try {
-    const putPDF = await api.putPDF(req.body)
-    res.send(putPDF)
+    res.send(await api.putPDF(req.body))
   } catch (err) { return apiError(err, res) }
 })
 
 // get pdf data
 app.get('/pdf/:id', async (req, res) => {
   try {
-    const getPDF = await api.getPDF(req.params)
-    res.send(getPDF)
+    res.send(await api.getPDF(req.params))
+  } catch (err) { return apiError(err, res) }
+})
+
+// put jobs
+app.put('/jobs', async (req, res) => {
+  try {
+    res.send(await api.putJobs(req.body))
   } catch (err) { return apiError(err, res) }
 })
 

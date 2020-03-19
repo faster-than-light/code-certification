@@ -1,4 +1,5 @@
 const { mongoConnect } = require('./mongo')
+const ObjectId = require('mongodb').ObjectId
 const nodeBugCatcher = require('node-bugcatcher')
 const bugCatcherApi = nodeBugCatcher('https://api.staging.bugcatcher.fasterthanlight.dev/')
 
@@ -61,17 +62,10 @@ async function putResults(results) {
   if (!results.user || !results.user.sid) return
 
   // verify the user and sid
-  const validUser = await checkUser(results.user)
-  if (!validUser) throw new Error(`Invalid token for user ${results.user.email}`)
+  let user = await checkUser(results.user)
+  if (!user) throw new Error(`Invalid token for user ${results.user.email}`)
 
-  // remove sensitive user info
-  results.user = {
-    email: results.user.email,
-    name: results.user.name,
-    picture_link: results.user.picture_link,
-  }
-
-  // number of files tested
+  // add number of files tested
   results.test_run.total_files_tested = results.test_run.codes.length
 
   // db function
@@ -180,6 +174,58 @@ async function getPDF(params) {
 }
 
 /**
+ * @title putJobs
+ * @dev saves/updates jobs
+ * 
+ * @param {object} data.jobs Jobs queue items object
+ * @param {object} data.user User object
+ * 
+ * @returns {boolean} Results saves boolean
+ */
+async function putJobs(data) {
+  let { jobs, user: userObject } = data
+
+  // validation
+  if (!data || !jobs || !userObject) return
+  if (!Array.isArray(jobs) || typeof userObject != 'object' ) return
+
+  // verify the user and sid
+  const user = await checkUser(userObject)
+  if (!user) throw new Error(`Invalid token for user ${userObject.email}`)
+
+  const fn = async (db, promise) => {
+    // upsert each job as a doc
+    /** @todo Batch/bulk upsert the data */
+    const jobsCollection = db.collection('jobs')
+    let errors = [], savedJobs = []
+    for (let i = 0; i < jobs.length; i++) {
+      let job = jobs[i]
+      job.user = { email: user.email }
+      const jobId = job._id
+      delete job._id
+      const saved = await jobsCollection.findOneAndUpdate(
+        {
+          "_id": ObjectId(jobId),
+          "user.email": user.email
+        },
+        { $set: job },
+        { upsert: true }
+      ).catch(e => {errors.push(e || "error saving")})
+      if (saved) {
+        const updated = saved['value'] ? saved['value']['_id'] : null
+        const upserted = saved['lastErrorObject']['upserted']
+        job._id = updated || upserted
+        delete job.user
+        savedJobs.push(job)
+      }
+    }
+    if (errors.length) promise.reject(errors)
+    promise.resolve(savedJobs)
+  }
+  return mongoConnect(fn)
+}
+
+/**
  * @title checkUser
  * @dev Query the BugCatcher server to confirm the `user.email` matches the `sid`
  * 
@@ -195,12 +241,19 @@ async function checkUser(user) {
     .catch(() => ({}))
   const { data: verifiedUser } = getUserData
   if (!verifiedUser) return
-  else return user.email === verifiedUser.email
+  if (user.email !== verifiedUser.email) return
+  else return ({
+    // remove sensitive user info
+    email: verifiedUser.email,
+    name: verifiedUser.name,
+    picture_link: verifiedUser.picture_link,
+  })
 }
 
 module.exports = {
   getPDF,
   getResults,
+  putJobs,
   putPDF,
   putResults,
   testConnection,
