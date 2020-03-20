@@ -249,7 +249,17 @@ async function getJobs(params) {
       "user.email": user.email
     }).toArray().catch(promise.reject)
     if (jobs) {
+      // remove user data
       jobs.forEach(j => { delete j.user })
+
+      // sort by projectName
+      function compare( a, b ) {
+        if ( a.projectName < b.projectName ) return -1
+        else if ( a.projectName > b.projectName ) return 1
+        else return 0
+      }
+      jobs.sort( compare )
+
       promise.resolve(jobs)
     }
   }
