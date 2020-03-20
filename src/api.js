@@ -233,27 +233,65 @@ async function putJobs(data) {
  * 
  * @returns {array} Results
  */
-async function getJobs(user) {
+async function getJobs(params) {
+  const { sid } = params
 
   // validation
-  if (!user || typeof user !== 'object' || !user.email || !user.sid) {
-    throw new Error(`invalid user`)
-  }
+  if (!sid) throw new Error(`invalid user`)
 
   // verify the user and sid
-  const verifiedUser = await checkUser(user)
-  if (!verifiedUser) throw new Error(`Invalid token for user ${user.email}`)
+  const user = await checkUser({ sid })
+  if (!user) throw new Error(`Invalid token`)
 
   const fn = async (db, promise) => {
     const jobsCollection = db.collection('jobs')
     let jobs = await jobsCollection.find({
       "user.email": user.email
     }).toArray().catch(promise.reject)
-    console.log(jobs)
     if (jobs) {
       jobs.forEach(j => { delete j.user })
       promise.resolve(jobs)
     }
+  }
+  return mongoConnect(fn)
+}
+
+/**
+ * @title deleteJobs
+ * @dev Deletes jobs
+ * 
+ * @param {array} data.jobs Jobs queue items object array
+ * @param {object} data.user User object
+ * 
+ * @returns {boolean} Results saves boolean
+ */
+async function deleteJobs(data) {
+  let { jobs, user: userObject } = data
+
+  // validation
+  if (!data || !jobs || !userObject) return
+  if (!Array.isArray(jobs) || typeof userObject !== 'object' ) return
+
+  // verify the user and sid
+  const user = await checkUser(userObject)
+  if (!user) throw new Error(`Invalid token for user ${userObject.email}`)
+
+  const fn = async (db, promise) => {
+    const jobIds = jobs.map(j => ObjectId(j._id))
+    const jobsCollection = db.collection('jobs')
+    const findDeleted = await jobsCollection.find(
+      {
+        _id: { $in: jobIds },
+        "user.email": user.email
+      }
+    ).toArray().catch(promise.reject)
+    const deleted = await jobsCollection.deleteMany(
+      {
+        _id: { $in: jobIds },
+        "user.email": user.email
+      }
+    ).catch(promise.reject)
+    if (deleted) promise.resolve(deleted)
   }
   return mongoConnect(fn)
 }
@@ -274,7 +312,7 @@ async function checkUser(user) {
     .catch(() => ({}))
   const { data: verifiedUser } = getUserData
   if (!verifiedUser) return
-  if (user.email !== verifiedUser.email) return
+  if (user.email && user.email !== verifiedUser.email) return
   else return ({
     // remove sensitive user info
     email: verifiedUser.email,
@@ -284,6 +322,7 @@ async function checkUser(user) {
 }
 
 module.exports = {
+  deleteJobs,
   getJobs,
   getPDF,
   getResults,

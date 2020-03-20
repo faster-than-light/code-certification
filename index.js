@@ -76,9 +76,16 @@ app.put('/jobs', async (req, res) => {
 })
 
 // get jobs
-app.get('/jobs', async (req, res) => {
+app.get('/jobs/:sid', async (req, res) => {
   try {
-    res.send(await api.getJobs(req.body))
+    res.send(await api.getJobs(req.params))
+  } catch (err) { return apiError(err, res) }
+})
+
+// delete jobs
+app.delete('/jobs', async (req, res) => {
+  try {
+    res.send(await api.deleteJobs(req.body))
   } catch (err) { return apiError(err, res) }
 })
 
