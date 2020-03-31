@@ -89,5 +89,12 @@ app.delete('/jobs', async (req, res) => {
   } catch (err) { return apiError(err, res) }
 })
 
+// add pull request
+app.post('/pr', async (req, res) => {
+  try {
+    res.send(await api.postPR(req.body))
+  } catch (err) { return apiError(err, res) }
+})
+
 // init
 app.listen(port, () => console.log(`Example app listening on port ${port}!`))

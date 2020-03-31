@@ -331,11 +331,49 @@ async function checkUser(user) {
   })
 }
 
+/**
+ * @title postPR
+ * @dev saves/updates pull request for job
+ * 
+ * @param {object} request Request object with appended User object
+ * @param {object} request.user Appended User object
+ * @param {string} request.testId Test ID of Job to be updated
+ * @param {string} request.prUrl Url to GitHub pull request
+ * 
+ * @returns {boolean} True when record is updated
+ */
+async function postPR(request) {
+  // validation
+  if (!request || !request.prUrl || !request.testId) return
+  if (!request.user || !request.user.sid) return
+
+  // verify the user and sid
+  let user = await checkUser(request.user)
+  if (!user) throw new Error(`Invalid token for user ${request.user.email}`)
+
+  // db function
+  const fn = async (db, promise) => {
+    const savedPullRequest = await db.collection('jobs').updateOne(
+      {
+        "testId": request.testId,
+        "user.email": user.email
+      },
+      { $set: { pullRequest: request.prUrl } },
+      { upsert: false }
+    ).catch(promise.reject)
+    
+    if (savedPullRequest) promise.resolve(true)
+    else promise.reject()
+  }
+  return mongoConnect(fn)
+}
+
 module.exports = {
   deleteJobs,
   getJobs,
   getPDF,
   getResults,
+  postPR,
   putJobs,
   putPDF,
   putResults,
