@@ -4,10 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "start:local": "PORT=3001 node index.js",
-    "Xstart": "CQC_DBNAME=$CQC_DBNAME_PROD CQC_DBURI=$CQC_DBURI_PROD CQC_DBUSER=$CQC_DBUSER_PROD CQC_DBPASSWORD=$CQC_DBPASSWORD_PROD node -r dotenv/config index.js",
-    "Xstart:local": "CQC_DBNAME=$CQC_DBNAME_STAGING CQC_DBURI=$CQC_DBURI_STAGING CQC_DBUSER=$CQC_DBUSER_STAGING CQC_DBPASSWORD=$CQC_DBPASSWORD_STAGING PORT=3003 node -r dotenv/config index.js",
+    "start": "FTL_ENV=staging PORT=3001 node index.js",
+    "start:prod": "FTL_ENV=production node index.js",
+    "start:devbat": "FTL_ENV=devbat PORT=3001 node index.js",
+    "start:local": "FTL_ENV=local PORT=3001 node index.js",
+    "start:staging": "FTL_ENV=staging PORT=3001 node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

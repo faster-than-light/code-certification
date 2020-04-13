@@ -1,7 +1,8 @@
 const { mongoConnect } = require('./mongo')
 const ObjectId = require('mongodb').ObjectId
 const nodeBugCatcher = require('node-bugcatcher')
-const bugCatcherApi = nodeBugCatcher('https://api.staging.bugcatcher.fasterthanlight.dev/')
+const apiUrl = process.env['API_URI_' + process.env['FTL_ENV'].toUpperCase()]
+const bugCatcherApi = nodeBugCatcher(apiUrl)
 
 /**
  * @title testConnection
