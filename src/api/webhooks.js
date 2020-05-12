@@ -6,9 +6,9 @@ const { mongoConnect } = require('../mongo')
 
 async function githubWebhook (request) {
   try {
-
     const { body, headers } = request
     const { "x-github-event": githubEvent } = headers
+    console.log({body, headers, githubEvent})
 
     if (!githubEvent || githubEvent !== 'push') return
     else {
@@ -44,7 +44,7 @@ async function githubWebhook (request) {
   }
   catch(err) {
     console.error(err)
-    return ({ error: err })
+    return (err)
   }
 }
 
