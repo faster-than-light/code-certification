@@ -284,8 +284,11 @@ async function deleteJobs(data) {
  * @dev Query the BugCatcher server to confirm the `user.email` matches the `sid`
  * 
  * @param {object} user 
+ * @param {boolean} returnAllData Null/false will return non-sensitive data only
+ * 
+ * @returns {object} User object 
  */
-async function checkUser(user) {
+async function checkUser(user, returnAllData) {
   // validation
   if (!user || !user.sid) return
 
@@ -296,6 +299,8 @@ async function checkUser(user) {
   const { data: verifiedUser } = getUserData
   if (!verifiedUser) return
   if (user.email && user.email !== verifiedUser.email) return
+  
+  if (returnAllData) return verifiedUser
   else return ({
     // remove sensitive user info
     email: verifiedUser.email,
@@ -341,7 +346,15 @@ async function postPR(request) {
   return mongoConnect(fn)
 }
 
-function webhook (request) {
+/**
+ * @title webhook
+ * @dev saves/updates webhook post data
+ * 
+ * @param {string} channel Path variable for the channel (ie. github) POSTing data
+ * 
+ * @returns {object} Response object ({"result":"ok"})
+ */
+function webhook(request) {
   const { params } = request
 
   // validation
@@ -352,6 +365,57 @@ function webhook (request) {
     default: return null
   }
 
+}
+
+/**
+ * @title webhookSubscription
+ * @dev saves/updates webhook subscription
+ * 
+ * @param {string} channel Path variable for the channel (ie. github) POSTing data
+ * @param {object} body POST body data object
+ * @param {string} body.ref The repository ref to subscribe to
+ * @param {string} body.repository The repository full_name to subscribe to
+ * @param {string} body.sid The subscriber's BugCatcher token
+ * 
+ * @returns {object} Response object containing the request body data plus user email
+ */
+async function webhookSubscription(request) {
+
+  // validation
+  const { body = {}, params = {} } = request
+  const { ref, repository, sid } = body
+  const { channel } = params
+  if (!body || !params || !channel || !ref || !repository || !sid) return
+
+  // verify the user by `sid`
+  const user = await checkUser({sid}, true)
+  if (!user) return
+  else {
+    // save subscription data
+    const { email } = user
+
+    // db function
+    const fn = async (db, promise) => {
+      const data = {
+        email,
+        ref,
+        repository,
+        sid,
+      }
+      await db.collection('webhookSubscriptions').updateOne(
+        {
+          email,
+          ref,
+          repository,
+        },
+        { $set: data },
+        { upsert: true }
+      ).catch(promise.reject)
+      promise.resolve(data)
+    }
+    return mongoConnect(fn)
+  }
+  
 }
 
 module.exports = {
@@ -365,4 +429,5 @@ module.exports = {
   putResults,
   testConnection,
   webhook,
+  webhookSubscription,
 }

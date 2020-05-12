@@ -96,6 +96,13 @@ app.post('/pr', async (req, res) => {
   } catch (err) { return apiError(err, res) }
 })
 
+// webhook subscriptions
+app.post('/webhook/subscription/:channel', async (req, res) => {
+  try {
+    res.send(await api.webhookSubscription(req))
+  } catch (err) { return apiError(err, res) }
+})
+
 // webhooks
 app.post('/webhook/:channel', async (req, res) => {
   try {
