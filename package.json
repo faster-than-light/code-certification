@@ -1,10 +1,10 @@
 {
   "name": "cqc-server",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "FTL_ENV=staging PORT=3001 node index.js",
+    "start": "node index.js",
     "start:prod": "FTL_ENV=production node index.js",
     "start:devbat": "FTL_ENV=devbat PORT=3001 node index.js",
     "start:local": "FTL_ENV=local PORT=3001 node index.js",
