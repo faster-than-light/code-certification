@@ -348,7 +348,7 @@ function webhook (request) {
   if (!params || !params.channel) return
 
   switch (params.channel) {
-    case "github": return githubWebhook(request)
+    case "github": return params//githubWebhook(request)
     default: return null
   }
 
