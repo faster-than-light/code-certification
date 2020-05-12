@@ -8,13 +8,10 @@ async function githubWebhook (request) {
   try {
     const { body, headers } = request
     const { "x-github-event": githubEvent } = headers
-    console.log({githubEvent})
+    const { compare } = body
 
-    if (!githubEvent || githubEvent !== 'push') return
+    if (!compare || !githubEvent || githubEvent !== 'push') return
     else {
-      const { compare } = body
-      console.log({compare})
-      if (!compare) return
 
       // reponse expected by GitHub
       const githubResponse = {"result":"ok"}
@@ -26,7 +23,10 @@ async function githubWebhook (request) {
         const savedScan = await githubScansCollection.find(findKey)
           .toArray().catch(promise.reject)
         
-        if (savedScan.length) promise.resolve(githubResponse)
+        if (savedScan.length) {
+          console.log(`Compare found: ${compare}`)
+          promise.resolve(githubResponse)
+        }
         else {
           const saved = await githubScansCollection.updateOne(
             findKey,
@@ -36,7 +36,10 @@ async function githubWebhook (request) {
             { upsert: true }
           ).catch(promise.reject)
 
-          if (saved) promise.resolve(githubResponse)
+          if (saved) {
+            console.log(`Compare saved: ${compare}`)
+            promise.resolve(githubResponse)
+          }
           else promise.reject()
         }
       }
