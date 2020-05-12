@@ -8,11 +8,11 @@ async function githubWebhook (request) {
   try {
     const { body, headers } = request
     const { "x-github-event": githubEvent } = headers
-    console.log({body, headers, githubEvent})
 
     if (!githubEvent || githubEvent !== 'push') return
     else {
       const { compare } = body
+      console.log({compare})
       if (!compare) return
 
       // reponse expected by GitHub
