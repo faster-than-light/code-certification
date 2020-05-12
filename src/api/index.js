@@ -1,4 +1,5 @@
-const { mongoConnect } = require('./mongo')
+const { mongoConnect } = require('../mongo')
+const { githubWebhook } = require('./webhooks')
 const ObjectId = require('mongodb').ObjectId
 const nodeBugCatcher = require('node-bugcatcher')
 const apiUrl = process.env['API_URI_' + process.env['FTL_ENV'].toUpperCase()]
@@ -19,35 +20,6 @@ function testConnection() {
   }
   return mongoConnect(fn)
 }
-
-/**
- * @title putUser
- * @dev saves/updates a user
- * 
- * @param {object} user User object 
- * 
- * @returns {object} User
- */
-// async function putUser(user) {
-//   // validation
-//   if (!user || !user.sid) return
-
-//   // verify the user and sid
-//   const valid = await checkUser(user)
-//   if (!valid) throw new Error(`Invalid token for user ${user.email}`)
-
-//   // db function
-//   const fn = async (db, promise) => {
-//     await db.collection('users').updateOne(
-//       { email: user.email },
-//       { $set: user },
-//       { upsert: true }
-//     ).catch(promise.reject)
-    
-//     promise.resolve(user)
-//   }
-//   return mongoConnect(fn)
-// }
 
 /**
  * @title putResults
@@ -369,6 +341,19 @@ async function postPR(request) {
   return mongoConnect(fn)
 }
 
+function webhook (request) {
+  const { params } = request
+
+  // validation
+  if (!params || !params.channel) return
+
+  switch (params.channel) {
+    case "github": return githubWebhook(request)
+    default: return null
+  }
+
+}
+
 module.exports = {
   deleteJobs,
   getJobs,
@@ -379,4 +364,5 @@ module.exports = {
   putPDF,
   putResults,
   testConnection,
+  webhook,
 }

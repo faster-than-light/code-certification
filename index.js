@@ -96,5 +96,12 @@ app.post('/pr', async (req, res) => {
   } catch (err) { return apiError(err, res) }
 })
 
+// webhooks
+app.post('/webhook/:channel', async (req, res) => {
+  try {
+    res.send(await api.webhook(req))
+  } catch (err) { return apiError(err, res) }
+})
+
 // init
 app.listen(port, () => console.log(`Example app listening on port ${port}!`))
