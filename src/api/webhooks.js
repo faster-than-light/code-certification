@@ -1,8 +1,4 @@
 const { mongoConnect } = require('../mongo')
-// const ObjectId = require('mongodb').ObjectId
-// const nodeBugCatcher = require('node-bugcatcher')
-// const apiUrl = process.env['API_URI_' + process.env['FTL_ENV'].toUpperCase()]
-// const bugCatcherApi = nodeBugCatcher(apiUrl)
 
 async function githubWebhook (request) {
   try {
@@ -10,35 +6,45 @@ async function githubWebhook (request) {
     const { "x-github-event": githubEvent } = headers
     const { compare } = body
 
+    // Only process `push` events with a `compare` value
     if (!compare || !githubEvent || githubEvent !== 'push') return
     else {
+      const { head_commit: headCommit } = body
+      const { tree_id: treeId } = headCommit
 
-      // reponse expected by GitHub
-      const githubResponse = {"result":"ok"}
+      // Get a collection of users subscribed to this event
+      // Get an ephemeral GitHub token for each subscriber
+      // Run 1 test on BugCatcher and save results as `githubScans.bugcatcherResults`
+      // Email each subscriber
+
+      // Reponse expected by GitHub
+      const successfulWebhookResponse = {"result":"ok"}
 
       // Look for a duplicate 
-      const findKey = { "requestBody.compare": compare }
+      const findKey = { "webhookBody.compare": compare }
       const fn = async (db, promise) => {
-        const githubScansCollection = db.collection('github_scans')
+        const githubScansCollection = db.collection('githubScans')
         const savedScan = await githubScansCollection.find(findKey)
           .toArray().catch(promise.reject)
         
         if (savedScan.length) {
           console.log(`Compare found: ${compare}`)
-          promise.resolve(githubResponse)
+          promise.resolve(successfulWebhookResponse)
         }
         else {
           const saved = await githubScansCollection.updateOne(
             findKey,
             { $set: {
-              requestBody: body
+              webhookBody: body
             }},
             { upsert: true }
           ).catch(promise.reject)
 
           if (saved) {
             console.log(`Compare saved: ${compare}`)
-            promise.resolve(githubResponse)
+
+            /** @todo Fetch repo and run test */
+            promise.resolve(successfulWebhookResponse)
           }
           else promise.reject()
         }
