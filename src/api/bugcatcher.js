@@ -57,7 +57,7 @@ const getTree = async context => {
 const fetchProjectFromServer = (context) => {
   const { projectName, token } = context
   const api = BugCatcher(bugcatcherUri, token)
-  return api.getProject(projectName)
+  return api.getProject(uriEncodeProjectName(projectName))
 }
 
 const uploadFromTree = (context, tree) => {
