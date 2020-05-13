@@ -14,7 +14,7 @@ const {
 const uploadsPerSecond = 10,
   maxConcurrentUploads = 99,
   millisecondTimeout = Math.floor(1000 / uploadsPerSecond),
-  retryAttemptsAllowed = 300,
+  retryAttemptsAllowed = 99,
   retryIntervalMilliseconds = 9000
 
 /** Variables */
