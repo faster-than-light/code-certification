@@ -19,6 +19,9 @@ async function githubWebhook (request) {
 
       if (!treeId) return
 
+      // Reponse expected by GitHub
+      const successfulWebhookResponse = {"result":"ok"}
+
       // Get a collection of users subscribed to this event
       // db function
       const fnGetSubscribers = async (db, promise) => {
@@ -30,8 +33,9 @@ async function githubWebhook (request) {
         ).toArray().catch(promise.reject)
         promise.resolve(data)
       }
-      const subscriberSids = await mongoConnect(fnGetSubscribers)
+      const subscriberSids = await mongoConnect(fnGetSubscribers).catch(() => [])
       // console.log({subscriberCount: subscriberSids.length})
+      if (!subscriberSids || !subscriberSids.length) return successfulWebhookResponse
       
       // Get an ephemeral GitHub token for each subscriber
       let subscriberPromises = new Array()
@@ -55,9 +59,6 @@ async function githubWebhook (request) {
       const testResults = testRepo.results
 
       // Email each subscriber
-
-      // Reponse expected by GitHub
-      const successfulWebhookResponse = {"result":"ok"}
 
       // Look for a duplicate 
       const findKey = { "webhookBody.compare": compare }

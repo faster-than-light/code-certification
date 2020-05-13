@@ -297,6 +297,7 @@ async function checkUser(user, returnAllData) {
   const getUserData = await bugCatcherApi.getUserData( user )
     .catch(() => ({}))
   const { data: verifiedUser } = getUserData
+  console.log({ user, verifiedUser })
   if (!verifiedUser) return
   if (user.email && user.email !== verifiedUser.email) return
   

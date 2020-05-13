@@ -27,6 +27,8 @@ let retryAttempts = 0,
   successfulUploads = 0,
   concurrentUploads = 0
 
+  console.log({bugcatcherUri})
+
 /** Functions */
 const getBlob = async (context, file_sha) => {
   if (context && file_sha) {
