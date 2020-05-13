@@ -115,7 +115,7 @@ async function testRepo (request) {
           console.log(`see: ${resultsUri.replace(':stlid', context.testId)}`)
           context.resultsMatrix = resultsMatrix
           statusResultsFailure(context)
-          return
+          return context
         }
 
         console.log(`Test Results : PASSED \"${context.severityThreshold}\" severity threshold`)
