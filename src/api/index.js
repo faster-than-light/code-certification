@@ -1,5 +1,5 @@
 const { mongoConnect } = require('../mongo')
-const { githubWebhook } = require('./webhooks')
+const webhooks = require('./webhooks')
 const ObjectId = require('mongodb').ObjectId
 const nodeBugCatcher = require('node-bugcatcher')
 const apiUrl = process.env['API_URI_' + process.env['FTL_ENV'].toUpperCase()]
@@ -361,61 +361,21 @@ function webhook(request) {
   if (!params || !params.channel) return
 
   switch (params.channel) {
-    case "github": return githubWebhook(request)
+    case "github": return webhooks.githubWebhook(request)
     default: return null
   }
 
 }
 
-/**
- * @title webhookSubscription
- * @dev saves/updates webhook subscription
- * 
- * @param {string} channel Path variable for the channel (ie. github) POSTing data
- * @param {object} body POST body data object
- * @param {string} body.ref The repository ref to subscribe to
- * @param {string} body.repository The repository full_name to subscribe to
- * @param {string} body.sid The subscriber's BugCatcher token
- * 
- * @returns {object} Response object containing the request body data plus user email
- */
 async function webhookSubscription(request) {
-
   // validation
-  const { body = {}, params = {} } = request
-  const { ref, repository, sid } = body
-  const { channel } = params
-  if (!body || !params || !channel || !ref || !repository || !sid) return
+  const { body = {} } = request
+  const { sid } = body
+  if (!body || !sid) return
 
-  // verify the user by `sid`
-  const user = await checkUser({sid}, true)
-  if (!user) return
-  else {
-    // save subscription data
-    const { email } = user
+  request.user = await checkUser({sid}, true)
 
-    // db function
-    const fn = async (db, promise) => {
-      const data = {
-        email,
-        ref,
-        repository,
-        sid,
-      }
-      await db.collection('webhookSubscriptions').updateOne(
-        {
-          email,
-          ref,
-          repository,
-        },
-        { $set: data },
-        { upsert: true }
-      ).catch(promise.reject)
-      promise.resolve(data)
-    }
-    return mongoConnect(fn)
-  }
-  
+  return webhooks.webhookSubscription(request)
 }
 
 module.exports = {
