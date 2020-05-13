@@ -53,33 +53,38 @@ async function githubWebhook (request) {
 
       // Run 1 test on BugCatcher and save results as `githubScans.bugcatcherResults`
       request.user = subscribers.find(s => s.sid && s.github_token)
-      console.log({ appEnvironment, subscribers, user: request.user, subscriberCount: subscriberSids.length})
       if (!request.user) return
 
-      const testRepo = await github.testRepo(request)
-      const testResults = testRepo.results
+      const asyncOps = async () => {
+        const testRepo = await github.testRepo(request)
+        const testResults = testRepo.results
 
-      // Email each subscriber
+        /** @todo Email each subscriber */
 
-      // Look for a duplicate 
-      const findKey = { "webhookBody.compare": compare }
-      const fn = async (db, promise) => {
-        const githubScansCollection = db.collection('githubScans')
-        const saved = await githubScansCollection.updateOne(
-          findKey,
-          { $set: {
-            testResults,
-            webhookBody: body,
-          }},
-          { upsert: true }
-        ).catch(promise.reject)
+        // Upsert the results
+        const findKey = { "webhookBody.compare": compare }
+        const fn = async (db, promise) => {
+          const githubScansCollection = db.collection('githubScans')
+          const savedScan = await githubScansCollection.updateOne(
+            findKey,
+            { $set: {
+              testResults,
+              webhookBody: body,
+            }},
+            { upsert: true }
+          ).catch(promise.reject)
 
-        if (saved) {
-          promise.resolve(successfulWebhookResponse)
+          if (savedScan) {
+            promise.resolve(successfulWebhookResponse)
+          }
+          else promise.reject()
         }
-        else promise.reject()
+        mongoConnect(fn)
       }
-      return mongoConnect(fn)
+
+      asyncOps()
+      return successfulWebhookResponse
+
     }
   }
   catch(err) {
