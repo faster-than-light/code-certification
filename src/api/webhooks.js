@@ -53,7 +53,7 @@ async function githubWebhook (request) {
 
       // Run 1 test on BugCatcher and save results as `githubScans.bugcatcherResults`
       request.user = subscribers.find(s => s.sid && s.github_token)
-      console.log({ subscribers, user: request.user, subscriberCount: subscriberSids.length})
+      console.log({ appEnvironment, subscribers, user: request.user, subscriberCount: subscriberSids.length})
       if (!request.user) return
 
       const testRepo = await github.testRepo(request)
