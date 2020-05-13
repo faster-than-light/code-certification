@@ -19,6 +19,25 @@ async function githubWebhook (request) {
 
       if (!treeId) return
 
+      // Upsert the webhook data to prevent multiple tests from firing
+      const findKey = { "webhookBody.compare": compare }
+      const fnUpsertScan = async (db, promise) => {
+        const githubScansCollection = db.collection('githubScans')
+        const savedScan = await githubScansCollection.updateOne(
+          findKey,
+          { $set: {
+            webhookBody: body,
+          }},
+          { upsert: true }
+        ).catch(promise.reject)
+
+        if (savedScan) {
+          promise.resolve(successfulWebhookResponse)
+        }
+        else promise.reject()
+      }
+      mongoConnect(fnUpsertScan)
+
       // Reponse expected by GitHub
       const successfulWebhookResponse = {"result":"ok"}
 
@@ -62,7 +81,6 @@ async function githubWebhook (request) {
         /** @todo Email each subscriber */
 
         // Upsert the results
-        const findKey = { "webhookBody.compare": compare }
         const fn = async (db, promise) => {
           const githubScansCollection = db.collection('githubScans')
           const savedScan = await githubScansCollection.updateOne(
