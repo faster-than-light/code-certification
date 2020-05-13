@@ -1,8 +1,8 @@
 const { mongoConnect } = require('../mongo')
 const github = require('./github')
 const nodeBugCatcher = require('node-bugcatcher')
-const apiUrl = process.env['API_URI_' + process.env['FTL_ENV'].toUpperCase()]
-const bugCatcherApi = nodeBugCatcher(apiUrl)
+const { appEnvironment, bugcatcherUri } = require('../../config')
+const bugCatcherApi = nodeBugCatcher(bugcatcherUri)
 
 async function githubWebhook (request) {
   try {
@@ -29,6 +29,7 @@ async function githubWebhook (request) {
           {
             ref,
             repository: reposistoryFullName,
+            environment: appEnvironment,
           }
         ).toArray().catch(promise.reject)
         promise.resolve(data)
@@ -48,11 +49,11 @@ async function githubWebhook (request) {
       const subscriberResults = await Promise.all(subscriberPromises.map(s => s[0]))
       const subscribers = subscriberResults.map((s, i) => ({
         ...s.data,
-        sid: subscriberPromises[i][1]
+        sid: subscriberPromises[i][1],
       }))
 
       // Run 1 test on BugCatcher and save results as `githubScans.bugcatcherResults`
-      request.user = subscribers.find(s => s.sid && s.github_token)
+      request.user = subscribers.find(s => s.sid && s.github_token && s.environment === appEnvironment)
       if (!request.user) return
 
       const testRepo = await github.testRepo(request)
@@ -117,6 +118,7 @@ async function webhookSubscription(request) {
     const fn = async (db, promise) => {
       const data = {
         email,
+        environment: appEnvironment,
         ref,
         repository,
         sid,
@@ -126,6 +128,7 @@ async function webhookSubscription(request) {
           email,
           ref,
           repository,
+          environment: appEnvironment,
         },
         { $set: data },
         { upsert: true }

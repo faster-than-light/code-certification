@@ -1,6 +1,7 @@
 module.exports = {
 
   // bugcatcherUri is optional. The NPM package will default to production
+  appEnvironment: process.env['FTL_ENV'].toUpperCase(),
   bugcatcherUri: process.env['API_URI_' + process.env['FTL_ENV'].toUpperCase()],
   resultsUri: "https://bugcatcher.fasterthanlight.dev/results/:stlid",
   

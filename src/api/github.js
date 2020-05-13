@@ -20,8 +20,8 @@ const {
   resultsUri,
 } = require('../helpers')
 // const nodeBugCatcher = require('node-bugcatcher')
-// const apiUrl = process.env['API_URI_' + process.env['FTL_ENV'].toUpperCase()]
-// const bugCatcherApi = nodeBugCatcher(apiUrl)
+// const { appEnvironment, bugcatcherUri } = require('../../config')
+// const bugCatcherApi = nodeBugCatcher(bugcatcherUri)
 
 async function testRepo (request) {
   try {

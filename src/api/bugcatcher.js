@@ -2,7 +2,7 @@
 const atob = require('atob')
 const { sha256 } = require('js-sha256')
 const BugCatcher = require('node-bugcatcher')
-const { bugcatcherUri } = require('../../config')
+const { appEnvironment, bugcatcherUri } = require('../../config')
 const {
   cleanProjectName,
   getRepoInfo,
