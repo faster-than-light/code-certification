@@ -1,7 +1,7 @@
 const { labels, resultsUri, statusStates, statusSteps } = require('../config')
 
-const getRepoInfo = context => {
-  const { head_commit, ref, repository, sha: payloadSha } = context.payload
+const getRepoInfo = payload => {
+  const { head_commit, ref, repository, sha: payloadSha } = payload
   const branch = ref.replace(/refs\/heads\//g, '')
   const projectName = [repository.full_name, branch].join('/tree/')
   const owner = repository.full_name.split('/')[0]
@@ -11,7 +11,7 @@ const getRepoInfo = context => {
 }
 
 const setStatusObj = (context, step, state) => {
-  const { owner, repo, sha } = getRepoInfo(context)
+  const { owner, repo, sha } = getRepoInfo(context.payload)
   step = statusSteps[step]
   state = statusStates[state]
   return ({

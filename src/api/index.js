@@ -293,12 +293,10 @@ async function checkUser(user, returnAllData) {
   if (!user || !user.sid) return
 
   // send our own request for the user data
-  console.log({ user })
   bugCatcherApi.setSid( user.sid )
   const getUserData = await bugCatcherApi.getUserData( user )
     .catch(() => ({}))
   const { data: verifiedUser } = getUserData
-  console.log({ verifiedUser })
   if (!verifiedUser) return
   if (user.email && user.email !== verifiedUser.email) return
   

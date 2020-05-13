@@ -1,8 +1,10 @@
 const { mongoConnect } = require('../mongo')
 const github = require('@actions/github')
+const { Octokit } = require("@octokit/rest")
 const bugcatcher = require('./bugcatcher')
+const { appUrl } = require('../../config')
 const {
-  // getRepoInfo,
+  getRepoInfo,
   passesSeverity,
   statusSetupPending,
   // statusSetupFailure,
@@ -22,6 +24,54 @@ const {
 // const nodeBugCatcher = require('node-bugcatcher')
 // const { appEnvironment, bugcatcherUri } = require('../../config')
 // const bugCatcherApi = nodeBugCatcher(bugcatcherUri)
+
+async function createHook(request) {
+  try {
+    const { body, user } = request
+    const { owner, repo } = body
+    const { github_token: githubToken } = user
+    const url = `${appUrl}/webhook/github`
+
+    const octokit = new Octokit({
+      auth: githubToken
+    })
+
+    let payload = {
+      owner,
+      repo,
+    }
+    const { data: existingHooks } = await octokit.repos.listHooks(payload).catch((c) => {
+      console.error(c)
+      return null
+    })
+    if (existingHooks) {
+      const matchingWebhook = existingHooks.find(h => h.config.url === url)
+      if (matchingWebhook) {
+        const deletedHook = await octokit.repos.deleteHook({
+          ...payload,
+          hook_id: matchingWebhook['id']
+        })
+      }
+    }
+    payload = {
+      ...payload,
+      events: ["push", "pull_request"],
+      config: {
+        url,
+        content_type: 'json',
+      }
+    }
+    const webhook = await octokit.repos.createHook(payload).catch((c) => {
+      console.error(c)
+      return null
+    })
+    return webhook
+  }
+  catch(err) {
+    console.error(err)
+    return (err)
+  }
+}
 
 async function testRepo (request) {
   try {
@@ -139,5 +189,6 @@ async function testRepo (request) {
 }
 
 module.exports = {
+  createHook,
   testRepo,
 }

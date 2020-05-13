@@ -2,7 +2,7 @@
 const atob = require('atob')
 const { sha256 } = require('js-sha256')
 const BugCatcher = require('node-bugcatcher')
-const { appEnvironment, bugcatcherUri } = require('../../config')
+const { appEnvironment, appUrl, bugcatcherUri } = require('../../config')
 const {
   cleanProjectName,
   getRepoInfo,
@@ -27,12 +27,12 @@ let retryAttempts = 0,
   successfulUploads = 0,
   concurrentUploads = 0
 
-  console.log({bugcatcherUri})
+  console.log({ appEnvironment, appUrl, bugcatcherUri })
 
 /** Functions */
 const getBlob = async (context, file_sha) => {
   if (context && file_sha) {
-    const { owner, repo } = getRepoInfo(context)
+    const { owner, repo } = getRepoInfo(context.payload)
     const blob = await context.github.git.getBlob({
       owner,
       repo,
@@ -44,7 +44,7 @@ const getBlob = async (context, file_sha) => {
 
 const getTree = async context => {
   if (context) {
-    const { owner, repo, sha: tree_sha } = getRepoInfo(context)
+    const { owner, repo, sha: tree_sha } = getRepoInfo(context.payload)
     return await context.github.git.getTree({
       owner,
       repo,
@@ -68,7 +68,7 @@ const uploadFromTree = (context, tree) => {
     const api = BugCatcher(bugcatcherUri, context.token)
 
     // set the project name and check for files on server
-    const { projectName } = getRepoInfo(context)
+    const { projectName } = getRepoInfo(context.payload)
     context.projectName = projectName
     const { data = {} } = await fetchProjectFromServer(context).catch(() => ({}))
     const { response = {} } = data
@@ -235,7 +235,7 @@ const checkTestStatus = (context) => {
       // we should be fetching or not
       if (
         !fetchingTest &&
-        (retryAttempts <= retryAttemptsAllowed || lastPercentComplete === 0)
+        (retryAttempts <= retryAttemptsAllowed)
       ) {
         retryAttempts++
         console.log(`Test Status : Request #${retryAttempts} at ${lastPercentComplete}% complete`)
@@ -280,7 +280,7 @@ const runTests = (context) => {
     console.log('Test Status : INITIALIZING')
     // init the api with the token
     const api = BugCatcher(bugcatcherUri, context.token)
-    const { projectName } = getRepoInfo(context)
+    const { projectName } = getRepoInfo(context.payload)
 
     clearTimeout( statusCheck )
     clearInterval( startCounting )

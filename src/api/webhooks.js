@@ -134,6 +134,16 @@ async function webhookSubscription(request) {
   // verify the user by `sid`
   if (!user) return
   else {
+    // Create webhook on GitHub
+    const webhook = await github.createHook({
+      body: {
+        owner: repository.split('/')[0],
+        repo: repository.split('/')[1],
+      },
+      user,
+    })
+    if (!webhook) return new Error('Webhook could not be created on GitHub')
+
     // save subscription data
     const { email } = user
 
