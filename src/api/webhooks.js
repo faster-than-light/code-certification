@@ -203,7 +203,39 @@ async function webhookSubscription(request) {
   
 }
 
+async function getWebhookSubscription(request) {
+  // validation
+  const { params = {}, user } = request
+  const { channel } = params
+  const { email } = user
+  if (!params || !user || !channel || !email) return
+
+  // db function
+  const fnGetSubscriptions = async (db, promise) => {
+    const subscriptionQuery = {
+      channel,
+      email,
+      environment: appEnvironment,
+    }
+    const webhookSubscriptionsCollection = db.collection('webhookSubscriptions')
+    const webhookSubscriptions = await webhookSubscriptionsCollection
+      .find(subscriptionQuery).toArray()
+    promise.resolve(webhookSubscriptions)
+  }
+  const getSubscriptions = await mongoConnect(fnGetSubscriptions)
+  if (!getSubscriptions || !getSubscriptions.length) return
+
+  let scans = getSubscriptions.map(s => {
+    return ({
+      name: encodeURIComponent(s.repository),
+      scan: s.webhookSubscription_id,
+    })
+  })
+  return scans
+}
+
 module.exports = {
+  getWebhookSubscription,
   githubWebhook,
   webhookSubscription,
 }

@@ -378,11 +378,23 @@ async function webhookSubscription(request) {
   return webhooks.webhookSubscription(request)
 }
 
+async function getWebhookSubscription(request) {
+  // validation
+  const { params = {} } = request
+  const { sid } = params
+  if (!params || !sid) return
+
+  request.user = await checkUser({sid}, true)
+
+  return webhooks.getWebhookSubscription(request)
+}
+
 module.exports = {
   deleteJobs,
   getJobs,
   getPDF,
   getResults,
+  getWebhookSubscription,
   postPR,
   putJobs,
   putPDF,
