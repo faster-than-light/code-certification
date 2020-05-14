@@ -40,14 +40,11 @@ async function createHook(request) {
       owner,
       repo,
     }
-    const { data: existingHooks } = await octokit.repos.listHooks(payload).catch((c) => {
-      console.error(c)
-      return null
-    })
+    const { data: existingHooks } = await octokit.repos.listHooks(payload).catch(() => undefined)
     if (existingHooks) {
       const matchingWebhook = existingHooks.find(h => h.config.url === url)
       if (matchingWebhook) {
-        const deletedHook = await octokit.repos.deleteHook({
+        await octokit.repos.deleteHook({
           ...payload,
           hook_id: matchingWebhook['id']
         })

@@ -99,7 +99,7 @@ app.post('/pr', async (req, res) => {
 // webhook subscriptions
 app.post('/webhook/subscription/:channel', async (req, res) => {
   try {
-    res.send(await api.webhookSubscription(req))
+    res.send(await api.putWebhookSubscription(req))
   } catch (err) { return apiError(err, res) }
 })
 
@@ -113,7 +113,7 @@ app.post('/webhook/:channel', async (req, res) => {
 // get webhook subscriptions
 app.get('/webhook/subscriptions/:channel/:sid', async (req, res) => {
   try {
-    res.send(await api.getWebhookSubscription(req))
+    res.send(await api.getWebhookSubscriptions(req))
   } catch (err) { return apiError(err, res) }
 })
 

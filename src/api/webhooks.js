@@ -113,7 +113,7 @@ async function githubWebhook (request) {
 
           const webhookSubscriptions = await webhookSubscriptionsCollection.updateMany(
             subscriptionQuery,
-            { $set: { webhookSubscription_id: savedGithubScan } }
+            { $set: { githubScans_id: savedGithubScan } }
           ).catch(promise.reject)
           promise.resolve(webhookSubscriptions)
         }
@@ -145,7 +145,7 @@ async function githubWebhook (request) {
  * 
  * @returns {object} Response object containing the request body data plus user email
  */
-async function webhookSubscription(request) {
+async function putWebhookSubscription(request) {
 
   // validation
   const { body = {}, params = {}, user } = request
@@ -157,14 +157,14 @@ async function webhookSubscription(request) {
   if (!user) return
   else {
     // Create webhook on GitHub
-    const webhook = await github.createHook({
+    const { data: webhook } = await github.createHook({
       body: {
         owner: repository.split('/')[0],
         repo: repository.split('/')[1],
       },
       user,
     })
-    if (!webhook) return new Error('Webhook could not be created on GitHub')
+    if (!webhook) return { error: 'Webhook could not be created on GitHub' }
 
     // save subscription data
     const { email } = user
@@ -203,7 +203,7 @@ async function webhookSubscription(request) {
   
 }
 
-async function getWebhookSubscription(request) {
+async function getWebhookSubscriptions(request) {
   // validation
   const { params = {}, user } = request
   const { channel } = params
@@ -225,17 +225,32 @@ async function getWebhookSubscription(request) {
   const getSubscriptions = await mongoConnect(fnGetSubscriptions)
   if (!getSubscriptions || !getSubscriptions.length) return
 
-  let scans = getSubscriptions.map(s => {
-    return ({
-      name: encodeURIComponent(s.repository),
-      scan: s.webhookSubscription_id,
-    })
+  let githubScanPromises = new Array()
+  getSubscriptions.forEach(s => {
+    githubScanPromises.push([
+      s,
+      mongoConnect(
+        async (db, promise) => {
+          const githubScansCollection = db.collection('githubScans')
+          const githubScans = await githubScansCollection.findOne({
+            _id: s.githubScans_id,
+          }).catch(promise.reject)
+          promise.resolve(githubScans)
+        }
+      )
+    ])
   })
+  const scanResults = await Promise.all(githubScanPromises.map(s => s[1]))
+  const scans = scanResults.map((s, i) => ({
+    ...githubScanPromises[i][0],
+    githubScans_id: undefined,
+    scan: s,
+  }))
   return scans
 }
 
 module.exports = {
-  getWebhookSubscription,
+  getWebhookSubscriptions,
   githubWebhook,
-  webhookSubscription,
+  putWebhookSubscription,
 }

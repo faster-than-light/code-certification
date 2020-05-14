@@ -367,7 +367,7 @@ function webhook(request) {
 
 }
 
-async function webhookSubscription(request) {
+async function putWebhookSubscription(request) {
   // validation
   const { body = {} } = request
   const { sid } = body
@@ -375,10 +375,10 @@ async function webhookSubscription(request) {
 
   request.user = await checkUser({sid}, true)
 
-  return webhooks.webhookSubscription(request)
+  return webhooks.putWebhookSubscription(request)
 }
 
-async function getWebhookSubscription(request) {
+async function getWebhookSubscriptions(request) {
   // validation
   const { params = {} } = request
   const { sid } = params
@@ -386,7 +386,7 @@ async function getWebhookSubscription(request) {
 
   request.user = await checkUser({sid}, true)
 
-  return webhooks.getWebhookSubscription(request)
+  return webhooks.getWebhookSubscriptions(request)
 }
 
 module.exports = {
@@ -394,12 +394,12 @@ module.exports = {
   getJobs,
   getPDF,
   getResults,
-  getWebhookSubscription,
+  getWebhookSubscriptions,
   postPR,
   putJobs,
   putPDF,
   putResults,
+  putWebhookSubscription,
   testConnection,
   webhook,
-  webhookSubscription,
 }
