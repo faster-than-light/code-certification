@@ -389,11 +389,30 @@ async function getWebhookSubscriptions(request) {
   return webhooks.getWebhookSubscriptions(request)
 }
 
+async function getWebhookScan(request) {
+  // validation
+  const { headers = {} } = request
+  const { "ftl-sid": sid } = headers
+  const badUserError = {
+    error: 'invalid user id'
+  }
+
+  if (!headers || !sid) return badUserError
+
+  // require any valid user
+  /** @todo Require the user to be subscribed to the scan parameters */
+  request.user = await checkUser({sid}, true)
+  if (!request.user) return badUserError
+
+  return webhooks.getWebhookScan(request)
+}
+
 module.exports = {
   deleteJobs,
   getJobs,
   getPDF,
   getResults,
+  getWebhookScan,
   getWebhookSubscriptions,
   postPR,
   putJobs,

@@ -4,7 +4,6 @@ const { sha256 } = require('js-sha256')
 const BugCatcher = require('node-bugcatcher')
 const { appEnvironment, appUrl, bugcatcherUri } = require('../../config')
 const {
-  cleanProjectName,
   getRepoInfo,
   statusTestingPending,
   uriEncodeProjectName,
@@ -27,7 +26,7 @@ let retryAttempts = 0,
   successfulUploads = 0,
   concurrentUploads = 0
 
-  console.log({ appEnvironment, appUrl, bugcatcherUri })
+console.log({ appEnvironment, appUrl, bugcatcherUri })
 
 /** Functions */
 const getBlob = async (context, file_sha) => {

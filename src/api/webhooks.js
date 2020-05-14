@@ -1,4 +1,5 @@
 const { mongoConnect } = require('../mongo')
+const ObjectId = require('mongodb').ObjectId
 const github = require('./github')
 const nodeBugCatcher = require('node-bugcatcher')
 const { appEnvironment, bugcatcherUri } = require('../../config')
@@ -249,7 +250,34 @@ async function getWebhookSubscriptions(request) {
   return scans
 }
 
+async function getWebhookScan(request) {
+  // validation
+  const { params = {}, user } = request
+  const { channel, scan } = params
+  if (!channel || !scan || !user) return
+  console.log({
+    channel,
+    scan,
+    user,
+  })
+
+  // Find the scan
+  // db function
+  const dbFnGetScan = async (db, promise) => {
+    const githubScansCollection = db.collection('githubScans')
+    const githubScan = await githubScansCollection
+      .findOne({
+        _id: ObjectId(scan),
+      })
+    console.log({githubScan})
+    promise.resolve(githubScan)
+  }
+  return mongoConnect(dbFnGetScan)
+
+}
+
 module.exports = {
+  getWebhookScan,
   getWebhookSubscriptions,
   githubWebhook,
   putWebhookSubscription,
