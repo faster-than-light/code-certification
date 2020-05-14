@@ -1,6 +1,14 @@
+const appEnvironment = ({
+  devbat: 'LOCAL',
+  local: 'LOCAL',
+  production: 'PRODUCTION',
+  staging: 'PRODUCTION',
+})[process.env['FTL_ENV'].toLowerCase()]
+
 module.exports = {
 
-  appEnvironment: process.env['FTL_ENV'].toUpperCase(),
+  appEnvironment,
+
   appUrl: ({
     development: 'https://certification-api.fasterthanlight.dev',
     devbat: 'https://certification-api.fasterthanlight.dev',
@@ -10,7 +18,7 @@ module.exports = {
   })[process.env['FTL_ENV']],
 
   // bugcatcherUri is optional. The NPM package will default to production
-  bugcatcherUri: process.env['API_URI_' + process.env['FTL_ENV'].toUpperCase()],
+  bugcatcherUri: process.env['API_URI_' + appEnvironment],
 
   resultsUri: "https://bugcatcher.fasterthanlight.dev/results/:stlid",
   

@@ -206,7 +206,7 @@ async function putWebhookSubscription(request) {
 
 async function getWebhookSubscriptions(request) {
   // validation
-  const { params = {}, user } = request
+  const { params = {}, user = {} } = request
   const { channel } = params
   const { email } = user
   if (!params || !user || !channel || !email) return
