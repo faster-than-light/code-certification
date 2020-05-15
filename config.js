@@ -2,7 +2,7 @@ const appEnvironment = ({
   devbat: 'LOCAL',
   local: 'LOCAL',
   production: 'PRODUCTION',
-  staging: 'PRODUCTION',
+  staging: 'STAGING',
 })[process.env['FTL_ENV'].toLowerCase()]
 
 const bugcatcherUris = {
