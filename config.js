@@ -1,9 +1,11 @@
-const appEnvironment = ({
-  devbat: 'LOCAL',
-  local: 'LOCAL',
-  production: 'PRODUCTION',
-  staging: 'STAGING',
-})[process.env['FTL_ENV'].toLowerCase()]
+const appEnvironments = {
+  devbat: 'devbat',
+  local: 'local',
+  production: 'production',
+  staging: 'staging',
+}
+
+const appEnvironment = appEnvironments[process.env['FTL_ENV']]
 
 const bugcatcherUris = {
   devbat: process.env['API_URI_DEVBAT'],
@@ -15,17 +17,18 @@ const bugcatcherUris = {
 module.exports = {
 
   appEnvironment,
+  appEnvironments,
 
   appUrl: ({
     development: 'https://code-certification-staging.herokuapp.com/',
     devbat: 'https://code-certification-staging.herokuapp.com/',
-    local: 'https://code-certification-staging.herokuapp.com/1',
+    local: 'https://code-certification-staging.herokuapp.com/',
     staging: 'https://code-certification-staging.herokuapp.com/',
-    production: 'https://certification-api.fasterthanlight.dev',
-  })[process.env['FTL_ENV'].toLowerCase()],
+    production: 'https://certification-api.fasterthanlight.dev/',
+  })[appEnvironment],
 
   // bugcatcherUri is optional. The NPM package will default to production
-  bugcatcherUri: bugcatcherUris[process.env['FTL_ENV'].toLowerCase()],
+  bugcatcherUri: bugcatcherUris[appEnvironment],
   bugcatcherUris,
 
   resultsUri: "https://bugcatcher.fasterthanlight.dev/results/:stlid",

@@ -30,7 +30,7 @@ async function createHook(request) {
     const { body, user } = request
     const { owner, repo } = body
     const { github_token: githubToken } = user
-    const url = `${appUrl}/webhook/github`
+    const url = `${appUrl}webhook/github`
 
     const octokit = new Octokit({
       auth: githubToken
@@ -40,9 +40,9 @@ async function createHook(request) {
       owner,
       repo,
     }
-    const { data: existingHooks } = await octokit.repos.listHooks(payload).catch(() => undefined)
-    if (existingHooks) {
-      const matchingWebhook = existingHooks.find(h => h.config.url === url)
+    const { data } = await octokit.repos.listHooks(payload).catch(() => ({}))
+    if (data) {
+      const matchingWebhook = data.find(h => h.config.url === url)
       if (matchingWebhook) {
         await octokit.repos.deleteHook({
           ...payload,

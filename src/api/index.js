@@ -2,8 +2,12 @@ const { mongoConnect } = require('../mongo')
 const webhooks = require('./webhooks')
 const ObjectId = require('mongodb').ObjectId
 const nodeBugCatcher = require('node-bugcatcher')
-const { bugcatcherUri } = require('../../config')
+const { appEnvironment, bugcatcherUri, bugcatcherUris } = require('../../config')
 const bugCatcherApi = nodeBugCatcher(bugcatcherUri)
+
+const badUserError = {
+  error: 'invalid user id'
+}
 
 /**
  * @title testConnection
@@ -288,14 +292,20 @@ async function deleteJobs(data) {
  * 
  * @returns {object} User object 
  */
-async function checkUser(user, returnAllData) {
+async function checkUser(user, environment, returnAllData) {
   // validation
   if (!user || !user.sid) return
 
   // send our own request for the user data
+  if (environment) bugCatcherApi.setApiUri( bugcatcherUris[environment] )
   bugCatcherApi.setSid( user.sid )
   const getUserData = await bugCatcherApi.getUserData( user )
-    .catch(() => ({}))
+    .catch((c) => {
+      console.error(c)
+      return undefined
+    })
+  if (!getUserData) return
+
   const { data: verifiedUser } = getUserData
   if (!verifiedUser) return
   if (user.email && user.email !== verifiedUser.email) return
@@ -371,9 +381,10 @@ async function putWebhookSubscription(request) {
   // validation
   const { body = {} } = request
   const { sid } = body
-  if (!body || !sid) return
+  if (!body || !sid) return badUserError
 
-  request.user = await checkUser({sid}, true)
+  request.user = await checkUser({sid}, null, true)
+  if (!request.user) return badUserError
 
   return webhooks.putWebhookSubscription(request)
 }
@@ -384,7 +395,7 @@ async function getWebhookSubscriptions(request) {
   const { sid } = params
   if (!params || !sid) return
 
-  request.user = await checkUser({sid}, true)
+  request.user = await checkUser({sid}, null, true)
 
   return webhooks.getWebhookSubscriptions(request)
 }
@@ -393,15 +404,12 @@ async function getWebhookScan(request) {
   // validation
   const { headers = {} } = request
   const { "ftl-sid": sid } = headers
-  const badUserError = {
-    error: 'invalid user id'
-  }
 
   if (!headers || !sid) return badUserError
 
   // require any valid user
   /** @todo Require the user to be subscribed to the scan parameters */
-  request.user = await checkUser({sid}, true)
+  request.user = await checkUser({sid}, null, true)
   if (!request.user) return badUserError
 
   return webhooks.getWebhookScan(request)

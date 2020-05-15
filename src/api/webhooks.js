@@ -165,8 +165,8 @@ async function putWebhookSubscription(request) {
       },
       user,
     }
-    const { data: webhook } = await github.createHook(createWebhookPayload).catch(() => ({}))
-    if (!webhook) return { error: 'Webhook could not be created on GitHub' }
+    const { data } = await github.createHook(createWebhookPayload).catch(() => ({}))
+    if (!data) return { error: 'Webhook could not be created on GitHub' }
 
     // save subscription data
     const { email } = user
