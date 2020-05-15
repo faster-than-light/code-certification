@@ -26,7 +26,7 @@ let retryAttempts = 0,
   successfulUploads = 0,
   concurrentUploads = 0
 
-console.log({ appEnvironment, appUrl, bugcatcherUri })
+console.log({ appEnvironment, appUrl, bugcatcherUri, ftlEnv: process.env['FTL_ENV'] })
 
 /** Functions */
 const getBlob = async (context, file_sha) => {

@@ -2,7 +2,7 @@ const { mongoConnect } = require('../mongo')
 const webhooks = require('./webhooks')
 const ObjectId = require('mongodb').ObjectId
 const nodeBugCatcher = require('node-bugcatcher')
-const { appEnvironment, bugcatcherUri } = require('../../config')
+const { bugcatcherUri } = require('../../config')
 const bugCatcherApi = nodeBugCatcher(bugcatcherUri)
 
 /**

@@ -158,13 +158,14 @@ async function putWebhookSubscription(request) {
   if (!user) return
   else {
     // Create webhook on GitHub
-    const { data: webhook } = await github.createHook({
+    const createWebhookPayload = {
       body: {
         owner: repository.split('/')[0],
         repo: repository.split('/')[1],
       },
       user,
-    })
+    }
+    const { data: webhook } = await github.createHook(createWebhookPayload).catch(() => ({}))
     if (!webhook) return { error: 'Webhook could not be created on GitHub' }
 
     // save subscription data
@@ -255,11 +256,6 @@ async function getWebhookScan(request) {
   const { params = {}, user } = request
   const { channel, scan } = params
   if (!channel || !scan || !user) return
-  console.log({
-    channel,
-    scan,
-    user,
-  })
 
   // Find the scan
   // db function
@@ -269,7 +265,6 @@ async function getWebhookScan(request) {
       .findOne({
         _id: ObjectId(scan),
       })
-    console.log({githubScan})
     promise.resolve(githubScan)
   }
   return mongoConnect(dbFnGetScan)
