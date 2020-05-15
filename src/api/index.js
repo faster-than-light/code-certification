@@ -391,11 +391,12 @@ async function putWebhookSubscription(request) {
 
 async function getWebhookSubscriptions(request) {
   // validation
-  const { params = {} } = request
-  const { sid } = params
-  if (!params || !sid) return
-
-  request.user = await checkUser({sid}, null, true)
+  const { headers = {}, params = {} } = request
+  const { "ftl-sid": sid } = headers
+  const { environment } = params
+  if (!sid) return
+  console.log(`fetching subscriptions from env: ${environment}`)
+  request.user = await checkUser({sid}, environment, true)
 
   return webhooks.getWebhookSubscriptions(request)
 }

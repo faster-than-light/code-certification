@@ -120,7 +120,7 @@ app.get('/webhook/scan/:channel/:scan', async (req, res) => {
 })
 
 // get webhook subscriptions
-app.get('/webhook/subscriptions/:channel/:sid', async (req, res) => {
+app.get('/webhook/subscriptions/:channel/:environment', async (req, res) => {
   try {
     res.send(await api.getWebhookSubscriptions(req))
   } catch (err) { return apiError(err, res) }
