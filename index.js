@@ -97,7 +97,7 @@ app.post('/pr', async (req, res) => {
 })
 
 // webhook subscriptions
-app.post('/webhook/subscription/:channel', async (req, res) => {
+app.post('/webhook/subscription/:channel/:environment', async (req, res) => {
   try {
     res.send(await api.putWebhookSubscription(req))
   } catch (err) { return apiError(err, res) }

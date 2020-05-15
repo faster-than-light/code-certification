@@ -379,11 +379,12 @@ function webhook(request) {
 
 async function putWebhookSubscription(request) {
   // validation
-  const { body = {} } = request
+  const { body = {}, params = {} } = request
   const { sid } = body
+  const { environment } = params
   if (!body || !sid) return badUserError
 
-  request.user = await checkUser({sid}, null, true)
+  request.user = await checkUser({sid}, environment, true)
   if (!request.user) return badUserError
 
   return webhooks.putWebhookSubscription(request)

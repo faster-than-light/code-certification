@@ -43,7 +43,6 @@ async function githubWebhook (request) {
       // Reponse expected by GitHub
       const subscriptionQuery = {
         channel: 'github',
-        environment: appEnvironment,
         ref,
         repository: reposistoryFullName,
       }
@@ -151,9 +150,12 @@ async function putWebhookSubscription(request) {
   // validation
   const { body = {}, params = {}, user } = request
   const { ref, repository, sid } = body
-  const { channel } = params
-  if (!body || !params || !channel || !ref || !repository || !sid) return
-
+  const { channel, environment } = params
+  if (!body || !params || !channel || !environment || !ref || !repository || !sid) return
+console.log({
+  user,
+  environment,
+})
   // verify the user by `sid`
   if (!user) return
   else {
@@ -176,7 +178,7 @@ async function putWebhookSubscription(request) {
       const data = {
         channel,
         email,
-        environment: appEnvironment,
+        environment,
         ref,
         repository,
         sid,
@@ -186,7 +188,7 @@ async function putWebhookSubscription(request) {
         email,
         ref,
         repository,
-        environment: appEnvironment,
+        environment,
       }
       const webhookSubscriptionsCollection = db.collection('webhookSubscriptions')
       await webhookSubscriptionsCollection.updateOne(
