@@ -83,10 +83,10 @@ async function githubWebhook (request) {
 
       // At this point, we want to return a response and then finish some operations afterward
       const asyncOps = async () => {
-        /** @dev This is meant to be executed asyncronously jsut before returning the response */
+        /** @dev This is meant to be executed asyncronously just before returning the response */
         
         const testRepo = await github.testRepo(request)
-        const testResults = testRepo.results
+        const { results: testResults, tree } = testRepo
 
         /** @todo Email each subscriber */
 
@@ -101,6 +101,7 @@ async function githubWebhook (request) {
             { _id: savedScan['_id']},
             { $set: {
               testResults,
+              tree,
             }}
           ).catch(() => undefined)
 

@@ -102,6 +102,7 @@ async function testRepo (request) {
       const { data: getTree = {} } = await bugcatcher.getTree(context)
       const { tree } = getTree
       if (!tree) return new Error('Failed to retrieve repo tree.')
+      context.tree = tree
       
       /** Upload repo from tree sha */
       statusSetupPending(context)
