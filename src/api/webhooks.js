@@ -2,7 +2,7 @@ const { mongoConnect } = require('../mongo')
 const ObjectId = require('mongodb').ObjectId
 const github = require('./github')
 const nodeBugCatcher = require('node-bugcatcher')
-const { appEnvironment, bugcatcherUri } = require('../../config')
+const { appEnvironment, bugcatcherUri, bugcatcherUris } = require('../../config')
 const bugCatcherApi = nodeBugCatcher(bugcatcherUri)
 
 async function githubWebhook (request) {
@@ -61,16 +61,21 @@ async function githubWebhook (request) {
       // Get an ephemeral GitHub token for each subscriber
       let subscriberPromises = new Array()
       subscriberSids.forEach(subscriberSid => {
+        const environment = subscriberSid['environment']
         const sid = subscriberSid['sid']
+        bugCatcherApi.setApiUri(bugcatcherUris[environment])
         bugCatcherApi.setSid(sid)
-        const subscriberPromise = bugCatcherApi.getUserData({ sid })
+        const subscriberPromise = bugCatcherApi.getUserData({ sid }).catch(() => undefined)
         subscriberPromises.push([subscriberSid, subscriberPromise])
       })
       const subscriberResults = await Promise.all(subscriberPromises.map(s => s[1]))
-      const userSubscriptions = subscriberResults.map((s, i) => ({
-        ...subscriberPromises[i][0],
-        ...s.data,
-      }))
+      const userSubscriptions = subscriberResults.map((s, i) => {
+        if (s && s['data']) return ({
+          ...subscriberPromises[i][0],
+          ...s.data,
+        })
+        else return
+      }).filter(s => s)
 
       // Run 1 test on BugCatcher and save results as `githubScans.bugcatcherResults`
       request.user = userSubscriptions.find(s => s['sid'] && s['github_token'])
@@ -152,10 +157,7 @@ async function putWebhookSubscription(request) {
   const { ref, repository, sid } = body
   const { channel, environment } = params
   if (!body || !params || !channel || !environment || !ref || !repository || !sid) return
-console.log({
-  user,
-  environment,
-})
+
   // verify the user by `sid`
   if (!user) return
   else {

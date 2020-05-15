@@ -2,7 +2,7 @@
 const atob = require('atob')
 const { sha256 } = require('js-sha256')
 const BugCatcher = require('node-bugcatcher')
-const { appEnvironment, appUrl, bugcatcherUri } = require('../../config')
+const { appEnvironment, appUrl, bugcatcherUri, bugcatcherUris } = require('../../config')
 const {
   getRepoInfo,
   statusTestingPending,
@@ -55,7 +55,7 @@ const getTree = async context => {
 
 const fetchProjectFromServer = (context) => {
   const { projectName, token } = context
-  const api = BugCatcher(bugcatcherUri, token)
+  const api = BugCatcher(bugcatcherUris[context.environment], token)
   return api.getProject(uriEncodeProjectName(projectName))
 }
 
@@ -64,7 +64,7 @@ const uploadFromTree = (context, tree) => {
     console.log("Synchronization Status : INITIALIZING")
 
     // init the api with the token
-    const api = BugCatcher(bugcatcherUri, context.token)
+    const api = BugCatcher(bugcatcherUris[context.environment], context.token)
 
     // set the project name and check for files on server
     const { projectName } = getRepoInfo(context.payload)
@@ -175,7 +175,7 @@ const uploadFromTree = (context, tree) => {
 
 const checkTestStatus = (context) => {
   // init the api with the token
-  const api = BugCatcher(bugcatcherUri, context.token)
+  const api = BugCatcher(bugcatcherUris[context.environment], context.token)
   const { testId: stlid } = context
 
   let fetchingTest = true
@@ -278,7 +278,7 @@ const runTests = (context) => {
   return new Promise(async (resolve, reject) => {
     console.log('Test Status : INITIALIZING')
     // init the api with the token
-    const api = BugCatcher(bugcatcherUri, context.token)
+    const api = BugCatcher(bugcatcherUris[context.environment], context.token)
     const { projectName } = getRepoInfo(context.payload)
 
     clearTimeout( statusCheck )
@@ -303,7 +303,7 @@ const runTests = (context) => {
 
 const fetchResults = async (context) => {
   // init the api with the token
-  const api = BugCatcher(bugcatcherUri, context.token)
+  const api = BugCatcher(bugcatcherUris[context.environment], context.token)
   const { testId: stlid } = context
 
   let { data: results = {} } = await api.getTestResult({

@@ -75,7 +75,7 @@ async function testRepo (request) {
     const { body, headers, user } = request
     const { "x-github-event": githubEvent } = headers
     const { compare } = body
-    const { github_token: githubToken, sid } = user
+    const { environment, github_token: githubToken, sid } = user
 
     // Only process `push` events with a `compare` value
     if (
@@ -93,6 +93,7 @@ async function testRepo (request) {
       if (!treeId) return
       
       let context = github.context
+      context.environment = environment
       context.token = sid
       context.severityThreshold = 'medium'
       context.github = new github.GitHub(githubToken)
