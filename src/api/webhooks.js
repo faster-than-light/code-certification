@@ -170,8 +170,28 @@ async function putWebhookSubscription(request) {
       },
       user,
     }
-    const { data } = await github.createHook(createWebhookPayload).catch(() => ({}))
-    if (!data) return { error: 'Webhook could not be created on GitHub' }
+    const { data: createdWebhook } = await github.createHook(createWebhookPayload).catch(() => ({}))
+    if (!createdWebhook) return { error: 'Webhook could not be created on GitHub' }
+
+    // look for previous tests on this repo
+    // db function
+    const dbFnGetScan = async (db, promise) => {
+      const githubScansCollection = db.collection('githubScans')
+      const githubScan = await githubScansCollection
+        .find({
+          "webhookBody.ref": ref,
+          "webhookBody.repository.full_name": repository,
+        })
+        .sort({"webhookBody.head_commit.timestamp": -1})
+        .limit(1)
+        .toArray()
+      promise.resolve(githubScan)
+    }
+    const scan = await mongoConnect(dbFnGetScan)
+    const lastScanTreeSha = scan && scan.length ? scan[0]['webhookBody']['head_commit']['tree_id'] : null
+
+    // if neccessary, run a test on the tree
+    const testNeededOnTreeSha = lastScanTreeSha !== createdWebhook.repoTreeSha ? createdWebhook.repoTreeSha : null
 
     // save subscription data
     const { email } = user
@@ -202,6 +222,7 @@ async function putWebhookSubscription(request) {
       const savedSubscription = await webhookSubscriptionsCollection.findOne(
         updateSubscriptionQuery
       )
+      if (savedSubscription) savedSubscription['testNeededOnTreeSha'] = testNeededOnTreeSha
       promise.resolve(savedSubscription)
     }
     const upsertWebhookSubscription = await mongoConnect(fnUpsertWebhookSubscription)

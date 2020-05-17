@@ -36,6 +36,21 @@ async function createHook(request) {
       auth: githubToken
     })
 
+    // find the repo
+    const { data: fetchedRepo } = await octokit.repos.get({
+      owner,
+      repo,
+    })
+    if (!fetchedRepo) return
+
+    // get the tree sha for the default branch
+    const { data: fetchedBranch } = await octokit.repos.getBranch({
+      owner,
+      repo,
+      branch: fetchedRepo['default_branch'],
+    })
+    if (!fetchedBranch) return
+
     let payload = {
       owner,
       repo,
@@ -62,6 +77,7 @@ async function createHook(request) {
       console.error(c)
       return null
     })
+    webhook['data']['repoTreeSha'] = fetchedBranch['commit']['commit']['tree']['sha']
     return webhook
   }
   catch(err) {
