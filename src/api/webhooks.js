@@ -65,7 +65,7 @@ async function githubWebhook (request) {
       // Get an ephemeral GitHub token for each subscriber
       let subscriberPromises = new Array()
       subscriberSids.forEach(subscriberSid => {
-        const environment = subscriberSid['environment']
+        const environment = subscriberSid['environment'] || 'production'
         const sid = subscriberSid['sid']
         bugCatcherApi.setApiUri(bugcatcherUris[environment])
         bugCatcherApi.setSid(sid)
