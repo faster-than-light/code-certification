@@ -270,8 +270,7 @@ async function deleteWebhookSubscription(request) {
       },
       user,
     }
-    const deletedWebhook = await github.deleteHook(deleteWebhookPayload).catch(() => ({}))
-    if (!deletedWebhook) return { error: 'Webhook could not be deleted from GitHub' }
+    await github.deleteHook(deleteWebhookPayload).catch(() => ({}))
 
     // delete subscription data
     const { email } = user
