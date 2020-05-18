@@ -56,6 +56,10 @@ async function githubWebhook (request) {
         promise.resolve(data)
       }
       const subscriberSids = await mongoConnect(fnGetSubscribers).catch(() => [])
+      console.log({
+        subscriptionQuery,
+        subscriberSids,
+      })
       if (!subscriberSids || !subscriberSids.length) return successfulWebhookResponse
       
       // Get an ephemeral GitHub token for each subscriber
