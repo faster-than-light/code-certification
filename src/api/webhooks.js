@@ -312,7 +312,7 @@ async function getWebhookSubscriptions(request) {
     promise.resolve(webhookSubscriptions)
   }
   const getSubscriptions = await mongoConnect(fnGetSubscriptions)
-  if (!getSubscriptions || !getSubscriptions.length) return
+  if (!getSubscriptions || !getSubscriptions.length) return []
 
   let githubScanPromises = new Array()
   getSubscriptions.forEach(s => {
