@@ -390,6 +390,19 @@ async function putWebhookSubscription(request) {
   return webhooks.putWebhookSubscription(request)
 }
 
+async function deleteWebhookSubscription(request) {
+  // validation
+  const { body = {}, params = {} } = request
+  const { sid } = body
+  const { environment } = params
+  if (!body || !sid) return badUserError
+
+  request.user = await checkUser({sid}, environment, true)
+  if (!request.user) return badUserError
+
+  return webhooks.deleteWebhookSubscription(request)
+}
+
 async function getWebhookSubscriptions(request) {
   // validation
   const { headers = {}, params = {} } = request
@@ -419,6 +432,7 @@ async function getWebhookScan(request) {
 
 module.exports = {
   deleteJobs,
+  deleteWebhookSubscription,
   getJobs,
   getPDF,
   getResults,

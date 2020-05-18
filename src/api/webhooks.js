@@ -140,7 +140,7 @@ async function githubWebhook (request) {
 }
 
 /**
- * @title webhookSubscription
+ * @title putWebhookSubscription
  * @dev saves/updates webhook subscription
  * 
  * @param {string} channel Path variable for the channel (ie. github) POSTing data
@@ -188,7 +188,8 @@ async function putWebhookSubscription(request) {
       promise.resolve(githubScan)
     }
     const scan = await mongoConnect(dbFnGetScan)
-    const lastScanTreeSha = scan && scan.length ? scan[0]['webhookBody']['head_commit']['tree_id'] : null
+    const lastScan = scan && scan.length ? scan[0] : null
+    const lastScanTreeSha = lastScan ? lastScan['webhookBody']['head_commit']['tree_id'] : null
 
     // if neccessary, run a test on the tree
     const testNeededOnTreeSha = lastScanTreeSha !== createdWebhook.repoTreeSha ? createdWebhook.repoTreeSha : null
@@ -222,11 +223,71 @@ async function putWebhookSubscription(request) {
       const savedSubscription = await webhookSubscriptionsCollection.findOne(
         updateSubscriptionQuery
       )
-      if (savedSubscription) savedSubscription['testNeededOnTreeSha'] = testNeededOnTreeSha
+      if (savedSubscription) {
+        if (testNeededOnTreeSha) savedSubscription['testNeededOnTreeSha'] = testNeededOnTreeSha
+        else savedSubscription['lastScan'] = lastScan
+      }
       promise.resolve(savedSubscription)
     }
     const upsertWebhookSubscription = await mongoConnect(fnUpsertWebhookSubscription)
     if (upsertWebhookSubscription) return upsertWebhookSubscription
+  }
+  
+}
+
+/**
+ * @title deleteWebhookSubscription
+ * @dev saves/updates webhook subscription
+ * 
+ * @param {string} channel Path variable for the channel (ie. github) POSTing data
+ * @param {object} body DELETE body data object
+ * @param {string} body.ref The repository ref to subscribe to
+ * @param {string} body.repository The repository full_name to subscribe to
+ * @param {string} body.sid The subscriber's BugCatcher token
+ * 
+ * @returns {object} Response object containing the request body data plus user email
+ */
+async function deleteWebhookSubscription(request) {
+
+  // validation
+  const { body = {}, params = {}, user } = request
+  const { ref, repository, sid } = body
+  const { channel, environment } = params
+  if (!body || !params || !channel || !environment || !ref || !repository || !sid) return
+
+  // verify the user by `sid`
+  if (!user) return
+  else {
+    // delete webhook from GitHub
+    const deleteWebhookPayload = {
+      body: {
+        owner: repository.split('/')[0],
+        repo: repository.split('/')[1],
+      },
+      user,
+    }
+    const deletedWebhook = await github.deleteHook(deleteWebhookPayload).catch(() => ({}))
+    if (!deletedWebhook) return { error: 'Webhook could not be deleted from GitHub' }
+
+    // delete subscription data
+    const { email } = user
+
+    // db function
+    const fnDeleteWebhookSubscription = async (db, promise) => {
+      const deleteSubscriptionQuery = {
+        channel,
+        email,
+        ref,
+        repository,
+        environment,
+      }
+      const webhookSubscriptionsCollection = db.collection('webhookSubscriptions')
+      const deletedSubscription = await webhookSubscriptionsCollection.deleteOne(
+        deleteSubscriptionQuery,
+      ).catch(promise.reject)
+      promise.resolve(deletedSubscription)
+    }
+    return mongoConnect(fnDeleteWebhookSubscription)
   }
   
 }
@@ -298,6 +359,7 @@ async function getWebhookScan(request) {
 }
 
 module.exports = {
+  deleteWebhookSubscription,
   getWebhookScan,
   getWebhookSubscriptions,
   githubWebhook,

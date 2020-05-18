@@ -86,6 +86,46 @@ async function createHook(request) {
   }
 }
 
+async function deleteHook(request) {
+  try {
+    const { body, user } = request
+    const { owner, repo } = body
+    const { github_token: githubToken } = user
+    const url = `${appUrl}webhook/github`
+
+    const octokit = new Octokit({
+      auth: githubToken
+    })
+
+    // find the repo
+    const { data: fetchedRepo } = await octokit.repos.get({
+      owner,
+      repo,
+    })
+    if (!fetchedRepo) return
+
+    let payload = {
+      owner,
+      repo,
+    }
+    const { data } = await octokit.repos.listHooks(payload).catch(() => ({}))
+    if (data) {
+      const matchingWebhook = data.find(h => h.config.url === url)
+      if (matchingWebhook) {
+        return octokit.repos.deleteHook({
+          ...payload,
+          hook_id: matchingWebhook['id']
+        })
+      }
+    }
+    return
+  }
+  catch(err) {
+    console.error(err)
+    return (err)
+  }
+}
+
 async function testRepo (request) {
   try {
     const { body, headers, user } = request
@@ -205,5 +245,6 @@ async function testRepo (request) {
 
 module.exports = {
   createHook,
+  deleteHook,
   testRepo,
 }

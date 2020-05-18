@@ -96,10 +96,17 @@ app.post('/pr', async (req, res) => {
   } catch (err) { return apiError(err, res) }
 })
 
-// webhook subscriptions
+// add webhook subscription
 app.post('/webhook/subscription/:channel/:environment', async (req, res) => {
   try {
     res.send(await api.putWebhookSubscription(req))
+  } catch (err) { return apiError(err, res) }
+})
+
+// delete webhook subscription
+app.delete('/webhook/subscription/:channel/:environment', async (req, res) => {
+  try {
+    res.send(await api.deleteWebhookSubscription(req))
   } catch (err) { return apiError(err, res) }
 })
 
