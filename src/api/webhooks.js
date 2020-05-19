@@ -114,9 +114,7 @@ async function githubWebhook (request) {
         // Save updated webhookSubscriptions
         // db function
         const fnUpdateWebhookSubscriptions = async (db, promise) => {
-
           const webhookSubscriptionsCollection = db.collection('webhookSubscriptions')
-
           const webhookSubscriptions = await webhookSubscriptionsCollection.updateMany(
             subscriptionQuery,
             { $set: { githubScans_id: savedGithubScan } }
@@ -125,7 +123,6 @@ async function githubWebhook (request) {
         }
         const webhookSubscriptions = await mongoConnect(fnUpdateWebhookSubscriptions).catch(() => undefined)
         if (webhookSubscriptions) console.log(`Saved GitHub webhook scan ${savedGithubScan}`)
-        
       }
 
       asyncOps()
@@ -372,24 +369,57 @@ async function postTestResults (request) {
     const { compare, ref, repository = {} } = webhookBody || {}
     const { full_name: reposistoryFullName } = repository
     if (!webhookBody || !compare || !ref || !reposistoryFullName) return
+    console.log({compare})
 
     // Upsert the webhook data to prevent multiple tests from firing
     const scansFindKey = { "webhookBody.compare": compare }
     // db function
     const fnUpsertScan = async (db, promise) => {
       const githubScansCollection = db.collection('githubScans')
-      const savedScan = await githubScansCollection.updateOne(
-        scansFindKey,
+      let savedScan = await githubScansCollection.findOne(
+        scansFindKey
+      ).catch(() => undefined)
+      let savedScanId = savedScan ? savedScan['_id'] : null
+      console.log({savedScanId})
+      const updatedScan = await githubScansCollection.updateOne(
+        savedScanId ? { _id: savedScanId} : {},
         { $set: {
           ...scan,
         }},
         { upsert: true }
       ).catch(promise.reject)
 
-      if (savedScan) promise.resolve(savedScan)
+      if (!savedScanId) {
+        // fetch scan id if not already found
+        savedScan = await githubScansCollection.findOne(
+          scansFindKey
+        ).catch(() => undefined)
+        savedScanId = savedScan ? savedScan['_id'] : null
+        console.log({savedScanId})
+      }
+
+      if (updatedScan && savedScanId) promise.resolve(savedScanId)
       else promise.reject()
     }
-    return mongoConnect(fnUpsertScan)
+    const savedGithubScan = await mongoConnect(fnUpsertScan)
+    if (!savedGithubScan) return
+
+    // Save updated webhookSubscriptions
+    // db function
+    const fnUpdateWebhookSubscriptions = async (db, promise) => {
+      const webhookSubscriptionsCollection = db.collection('webhookSubscriptions')
+      const webhookSubscriptions = await webhookSubscriptionsCollection.updateMany(
+        {
+          channel: 'github',
+          ref,
+          repository: reposistoryFullName,
+        },
+        { $set: { githubScans_id: savedGithubScan } }
+      ).catch(promise.reject)
+      promise.resolve(webhookSubscriptions)
+    }
+    const webhookSubscriptions = await mongoConnect(fnUpdateWebhookSubscriptions).catch(() => undefined)
+    if (webhookSubscriptions) console.log(`Saved GitHub webhook scan ${savedGithubScan}`)
 
   }
   catch(err) {
