@@ -380,22 +380,26 @@ async function postTestResults (request) {
         scansFindKey
       ).catch(() => undefined)
       let savedScanId = savedScan ? savedScan['_id'] : null
-      console.log({savedScanId})
-      const updatedScan = await githubScansCollection.updateOne(
-        savedScanId ? { _id: savedScanId} : {},
-        { $set: {
-          ...scan,
-        }},
-        { upsert: true }
-      ).catch(promise.reject)
+      let updatedScan
+      if (savedScanId) {
+        updatedScan = await githubScansCollection.updateOne(
+          { _id: savedScanId},
+          { $set: {
+            ...scan,
+          }},
+          { upsert: true }
+        ).catch(promise.reject)  
+      }
+      else {
+        updatedScan = await githubScansCollection.insertOne(
+          scan
+        ).catch(promise.reject)  
 
-      if (!savedScanId) {
         // fetch scan id if not already found
         savedScan = await githubScansCollection.findOne(
           scansFindKey
         ).catch(() => undefined)
         savedScanId = savedScan ? savedScan['_id'] : null
-        console.log({savedScanId})
       }
 
       if (updatedScan && savedScanId) promise.resolve(savedScanId)
@@ -420,7 +424,7 @@ async function postTestResults (request) {
     }
     const webhookSubscriptions = await mongoConnect(fnUpdateWebhookSubscriptions).catch(() => undefined)
     if (webhookSubscriptions) console.log(`Saved GitHub webhook scan ${savedGithubScan}`)
-
+    return savedGithubScan
   }
   catch(err) {
     console.error(err)
