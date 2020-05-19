@@ -2,7 +2,7 @@ const { mongoConnect } = require('../mongo')
 const webhooks = require('./webhooks')
 const ObjectId = require('mongodb').ObjectId
 const nodeBugCatcher = require('node-bugcatcher')
-const { appEnvironment, bugcatcherUri, bugcatcherUris } = require('../../config')
+const { bugcatcherUri, bugcatcherUris } = require('../../config')
 const bugCatcherApi = nodeBugCatcher(bugcatcherUri)
 
 const badUserError = {
@@ -409,7 +409,6 @@ async function getWebhookSubscriptions(request) {
   const { "ftl-sid": sid } = headers
   const { environment } = params
   if (!sid) return
-  console.log(`fetching subscriptions from env: ${environment}`)
   request.user = await checkUser({sid}, environment, true)
 
   return webhooks.getWebhookSubscriptions(request)
