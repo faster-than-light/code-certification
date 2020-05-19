@@ -158,6 +158,7 @@ async function putWebhookSubscription(request) {
   const { ref, repository, sid } = body
   const { channel, environment } = params
   if (!body || !params || !channel || !environment || !ref || !repository || !sid) return
+  console.log({ call: 'putWebhookSubscription', body, params })
 
   // verify the user by `sid`
   if (!user) return
@@ -367,6 +368,7 @@ async function postTestResults (request) {
     const { scan, sid } = body
     const { channel, environment } = params
     if (!body || !params || !channel || !environment || !scan || !sid) return
+    console.log({ call: 'postTestResults', body, params })
   
     const { webhookBody } = scan
     const { compare, ref, repository = {} } = webhookBody || {}
