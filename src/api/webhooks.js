@@ -56,10 +56,6 @@ async function githubWebhook (request) {
         promise.resolve(data)
       }
       const subscriberSids = await mongoConnect(fnGetSubscribers).catch(() => [])
-      console.log({
-        subscriptionQuery,
-        subscriberSids,
-      })
       if (!subscriberSids || !subscriberSids.length) return successfulWebhookResponse
       
       // Get an ephemeral GitHub token for each subscriber
@@ -67,7 +63,6 @@ async function githubWebhook (request) {
       subscriberSids.forEach(subscriberSid => {
         const environment = appEnvironments[subscriberSid['environment']] || 'production'
         const sid = subscriberSid['sid']
-        console.log({ environment, sid })
         bugCatcherApi.setApiUri(bugcatcherUris[environment])
         bugCatcherApi.setSid(sid)
         const subscriberPromise = bugCatcherApi.getUserData({ sid }).catch(() => undefined)
@@ -84,7 +79,6 @@ async function githubWebhook (request) {
 
       // Run 1 test on BugCatcher and save results as `githubScans.bugcatcherResults`
       request.user = userSubscriptions.find(s => s['sid'] && s['github_token'])
-      console.log({subscriberResults, userSubscriptions, user: request.user})
       if (!request.user) return
 
       // At this point, we want to return a response and then finish some operations afterward
@@ -92,7 +86,6 @@ async function githubWebhook (request) {
         /** @dev This is meant to be executed asyncronously just before returning the response */
         
         const testRepo = await github.testRepo(request)
-        console.log({testRepo})
         const { results: testResults, tree } = testRepo
 
         /** @todo Email each subscriber */
@@ -417,10 +410,6 @@ async function postTestResults (request) {
       promise.resolve(data)
     }
     const subscriberSids = await mongoConnect(fnGetSubscribers).catch(() => [])
-    console.log({
-      subscriptionQuery,
-      subscriberSids,
-    })
     if (!subscriberSids || !subscriberSids.length) return successfulWebhookResponse
     
     // Get an ephemeral GitHub token for each subscriber
@@ -444,7 +433,6 @@ async function postTestResults (request) {
 
     // Run 1 test on BugCatcher and save results as `githubScans.bugcatcherResults`
     request.user = userSubscriptions.find(s => s['sid'] && s['github_token'])
-    console.log({user: request.user})
     if (!request.user) return
 
     // At this point, we want to return a response and then finish some operations afterward
@@ -452,7 +440,6 @@ async function postTestResults (request) {
       /** @dev This is meant to be executed asyncronously just before returning the response */
       
       const testRepo = await github.testRepo(request)
-      console.log({testRepo})
       const { results: testResults, tree } = testRepo
 
       /** @todo Email each subscriber */
