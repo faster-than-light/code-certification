@@ -368,9 +368,10 @@ async function postTestResults (request) {
     const { channel, environment } = params
     if (!body || !params || !channel || !environment || !scan || !sid) return
   
-    const { compare, ref, repository = {} } = scan
+    const { webhookBody } = scan
+    const { compare, ref, repository = {} } = webhookBody || {}
     const { full_name: reposistoryFullName } = repository
-    if (!compare || !ref || !reposistoryFullName) return
+    if (!webhookBody || !compare || !ref || !reposistoryFullName) return
 
     // Upsert the webhook data to prevent multiple tests from firing
     const scansFindKey = { "webhookBody.compare": compare }
