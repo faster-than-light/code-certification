@@ -117,6 +117,13 @@ app.post('/webhook/:channel', async (req, res) => {
   } catch (err) { return apiError(err, res) }
 })
 
+// save test results
+app.post('/results/:channel/:environment', async (req, res) => {
+  try {
+    res.send(await api.postTestResults(req))
+  } catch (err) { return apiError(err, res) }
+})
+
 // get webhook scan by bugcatcher test_id
 app.get('/webhook/scan/:channel/:scan', async (req, res) => {
   try {

@@ -430,6 +430,20 @@ async function getWebhookScan(request) {
   return webhooks.getWebhookScan(request)
 }
 
+async function postTestResults(request) {
+  // validation
+  const { body = {}, params = {} } = request
+  const { scan, sid } = body
+  const { channel, environment } = params
+  if (!body || !sid) return badUserError
+  if (!params || !scan || !channel || !environment) return 
+
+  request.user = await checkUser({sid}, environment, true)
+  if (!request.user) return badUserError
+  
+  return webhooks.postTestResults(request)
+}
+
 module.exports = {
   deleteJobs,
   deleteWebhookSubscription,
@@ -439,6 +453,7 @@ module.exports = {
   getWebhookScan,
   getWebhookSubscriptions,
   postPR,
+  postTestResults,
   putJobs,
   putPDF,
   putResults,

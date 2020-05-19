@@ -176,7 +176,8 @@ async function putWebhookSubscription(request) {
     }
     let createdWebhook = await github.createHook(createWebhookPayload)
     .catch(() => null)
-    if (createdWebhook) createdWebhook = createdWebhook['data']
+    if (!createdWebhook) return
+    else createdWebhook = createdWebhook['data']
 
     // look for previous tests on this repo
     // db function
@@ -363,10 +364,149 @@ async function getWebhookScan(request) {
 
 }
 
+async function postTestResults (request) {
+  try {
+    // validation
+    const { body = {}, params = {} } = request
+    const { scan, sid } = body
+    const { channel, environment } = params
+    if (!body || !params || !channel || !environment || !scan || !sid) return
+  
+    const { head_commit: headCommit = {}, ref, repository = {} } = body
+    const { full_name: reposistoryFullName } = repository
+    const { tree_id: treeId } = headCommit
+
+    if (!treeId) return
+
+    const successfulWebhookResponse = {"result":"ok"}
+
+    // Upsert the webhook data to prevent multiple tests from firing
+    const scansFindKey = { "webhookBody.compare": compare }
+    // db function
+    const fnUpsertScan = async (db, promise) => {
+      const githubScansCollection = db.collection('githubScans')
+      const savedScan = await githubScansCollection.updateOne(
+        scansFindKey,
+        { $set: {
+          webhookBody: body,
+        }},
+        { upsert: true }
+      ).catch(promise.reject)
+
+      if (savedScan) promise.resolve(savedScan)
+      else promise.reject()
+    }
+    mongoConnect(fnUpsertScan)
+
+    // Reponse expected by GitHub
+    const subscriptionQuery = {
+      channel: 'github',
+      ref,
+      repository: reposistoryFullName,
+    }
+
+    // Get a collection of users subscribed to this event
+    // db function
+    const fnGetSubscribers = async (db, promise) => {
+      const data = await db.collection('webhookSubscriptions').find(
+        subscriptionQuery
+      ).toArray().catch(promise.reject)
+      promise.resolve(data)
+    }
+    const subscriberSids = await mongoConnect(fnGetSubscribers).catch(() => [])
+    console.log({
+      subscriptionQuery,
+      subscriberSids,
+    })
+    if (!subscriberSids || !subscriberSids.length) return successfulWebhookResponse
+    
+    // Get an ephemeral GitHub token for each subscriber
+    let subscriberPromises = new Array()
+    subscriberSids.forEach(subscriberSid => {
+      const environment = subscriberSid['environment'] || 'production'
+      const sid = subscriberSid['sid']
+      bugCatcherApi.setApiUri(bugcatcherUris[environment])
+      bugCatcherApi.setSid(sid)
+      const subscriberPromise = bugCatcherApi.getUserData({ sid }).catch(() => undefined)
+      subscriberPromises.push([subscriberSid, subscriberPromise])
+    })
+    const subscriberResults = await Promise.all(subscriberPromises.map(s => s[1]))
+    const userSubscriptions = subscriberResults.map((s, i) => {
+      if (s && s['data']) return ({
+        ...subscriberPromises[i][0],
+        ...s.data,
+      })
+      else return
+    }).filter(s => s)
+
+    // Run 1 test on BugCatcher and save results as `githubScans.bugcatcherResults`
+    request.user = userSubscriptions.find(s => s['sid'] && s['github_token'])
+    if (!request.user) return
+    console.log({user: request.user})
+
+    // At this point, we want to return a response and then finish some operations afterward
+    const asyncOps = async () => {
+      /** @dev This is meant to be executed asyncronously just before returning the response */
+      
+      const testRepo = await github.testRepo(request)
+      const { results: testResults, tree } = testRepo
+
+      /** @todo Email each subscriber */
+
+      // Upsert the results
+      // db function
+      const fnUpsertGithubScans = async (db, promise) => {
+        const githubScansCollection = db.collection('githubScans')
+        const savedScan = await githubScansCollection.findOne(
+          scansFindKey
+        ).catch(() => undefined)
+        const updatedScan = await githubScansCollection.updateOne(
+          { _id: savedScan['_id']},
+          { $set: {
+            testResults,
+            tree,
+          }}
+        ).catch(() => undefined)
+
+        if (updatedScan) promise.resolve(savedScan['_id'])
+        else promise.reject()
+      }
+      const savedGithubScan = await mongoConnect(fnUpsertGithubScans).catch(() => undefined)
+      if (!savedGithubScan) return
+
+      // Save updated webhookSubscriptions
+      // db function
+      const fnUpdateWebhookSubscriptions = async (db, promise) => {
+
+        const webhookSubscriptionsCollection = db.collection('webhookSubscriptions')
+
+        const webhookSubscriptions = await webhookSubscriptionsCollection.updateMany(
+          subscriptionQuery,
+          { $set: { githubScans_id: savedGithubScan } }
+        ).catch(promise.reject)
+        promise.resolve(webhookSubscriptions)
+      }
+      const webhookSubscriptions = await mongoConnect(fnUpdateWebhookSubscriptions).catch(() => undefined)
+      if (webhookSubscriptions) console.log(`Saved GitHub webhook scan ${savedGithubScan}`)
+      
+    }
+
+    asyncOps()
+    return successfulWebhookResponse
+
+  }
+  catch(err) {
+    console.error(err)
+    return (err)
+  }
+}
+
+
 module.exports = {
   deleteWebhookSubscription,
   getWebhookScan,
   getWebhookSubscriptions,
   githubWebhook,
+  postTestResults,
   putWebhookSubscription,
 }
