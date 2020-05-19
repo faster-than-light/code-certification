@@ -2,7 +2,7 @@ const { mongoConnect } = require('../mongo')
 const ObjectId = require('mongodb').ObjectId
 const github = require('./github')
 const nodeBugCatcher = require('node-bugcatcher')
-const { appEnvironment, bugcatcherUri, bugcatcherUris } = require('../../config')
+const { appEnvironment, appEnvironments, bugcatcherUri, bugcatcherUris } = require('../../config')
 const bugCatcherApi = nodeBugCatcher(bugcatcherUri)
 
 async function githubWebhook (request) {
@@ -65,7 +65,7 @@ async function githubWebhook (request) {
       // Get an ephemeral GitHub token for each subscriber
       let subscriberPromises = new Array()
       subscriberSids.forEach(subscriberSid => {
-        const environment = subscriberSid['environment'] || 'production'
+        const environment = appEnvironments[subscriberSid['environment']] || 'production'
         const sid = subscriberSid['sid']
         console.log({ environment, sid })
         bugCatcherApi.setApiUri(bugcatcherUris[environment])
