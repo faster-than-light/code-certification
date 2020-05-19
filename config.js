@@ -1,7 +1,7 @@
 const appEnvironments = {
   devbat: 'devbat',
   development: 'staging',
-  local: 'local',
+  local: 'devbat',
   production: 'production',
   staging: 'staging',
 }
