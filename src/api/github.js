@@ -73,15 +73,12 @@ async function createHook(request) {
         content_type: 'json',
       }
     }
-    const webhook = await octokit.repos.createHook(payload).catch((c) => {
-      console.error(c)
-      return null
-    })
-    webhook['data']['repoTreeSha'] = fetchedBranch['commit']['commit']['tree']['sha']
+    const webhook = await octokit.repos.createHook(payload).catch(() => null)
+    if (webhook && webhook.data) webhook.data['repoTreeSha'] = fetchedBranch['commit']['commit']['tree']['sha']
     return webhook
   }
   catch(err) {
-    console.error(err)
+    // console.error(err)
     return (err)
   }
 }

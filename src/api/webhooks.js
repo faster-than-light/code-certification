@@ -174,8 +174,9 @@ async function putWebhookSubscription(request) {
       },
       user,
     }
-    const { data: createdWebhook } = await github.createHook(createWebhookPayload).catch(() => ({}))
-    if (!createdWebhook) return { error: 'Webhook could not be created on GitHub' }
+    let createdWebhook = await github.createHook(createWebhookPayload)
+    .catch(() => null)
+    if (createdWebhook) createdWebhook = createdWebhook['data']
 
     // look for previous tests on this repo
     // db function
@@ -196,7 +197,8 @@ async function putWebhookSubscription(request) {
     const lastScanTreeSha = lastScan ? lastScan['webhookBody']['head_commit']['tree_id'] : null
 
     // if neccessary, run a test on the tree
-    const testNeededOnTreeSha = lastScanTreeSha !== createdWebhook.repoTreeSha ? createdWebhook.repoTreeSha : null
+    const testNeededOnTreeSha = !createdWebhook ? true :
+      lastScanTreeSha !== createdWebhook['repoTreeSha'] ? createdWebhook['repoTreeSha'] : null
 
     // save subscription data
     const { email } = user
