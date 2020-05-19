@@ -441,14 +441,15 @@ async function postTestResults (request) {
 
     // Run 1 test on BugCatcher and save results as `githubScans.bugcatcherResults`
     request.user = userSubscriptions.find(s => s['sid'] && s['github_token'])
-    if (!request.user) return
     console.log({user: request.user})
+    if (!request.user) return
 
     // At this point, we want to return a response and then finish some operations afterward
     const asyncOps = async () => {
       /** @dev This is meant to be executed asyncronously just before returning the response */
       
       const testRepo = await github.testRepo(request)
+      console.log({testRepo})
       const { results: testResults, tree } = testRepo
 
       /** @todo Email each subscriber */
