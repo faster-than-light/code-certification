@@ -188,6 +188,7 @@ async function putWebhookSubscription(request) {
     }
     const scan = await mongoConnect(dbFnGetScan)
     const lastScan = scan && scan.length ? scan[0] : null
+    const githubScanId = lastScan ? lastScan['_id'] : null
     const lastScanTreeSha = lastScan ? lastScan['webhookBody']['head_commit']['tree_id'] : null
 
     // if neccessary, run a test on the tree
@@ -199,7 +200,7 @@ async function putWebhookSubscription(request) {
 
     // db function
     const fnUpsertWebhookSubscription = async (db, promise) => {
-      const data = {
+      let data = {
         channel,
         email,
         environment,
@@ -207,6 +208,7 @@ async function putWebhookSubscription(request) {
         repository,
         sid,
       }
+      if (githubScanId) data['githubScans_id'] = githubScanId
       const updateSubscriptionQuery = {
         channel,
         email,
@@ -369,7 +371,6 @@ async function postTestResults (request) {
     const { compare, ref, repository = {} } = webhookBody || {}
     const { full_name: reposistoryFullName } = repository
     if (!webhookBody || !compare || !ref || !reposistoryFullName) return
-    console.log({compare})
 
     // Upsert the webhook data to prevent multiple tests from firing
     const scansFindKey = { "webhookBody.compare": compare }
