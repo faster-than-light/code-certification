@@ -66,8 +66,6 @@ app.post(
 // add webhook subscription (via SID)
 app.post(
   '/webhook/subscription/:channel/:environment',
-  // authenticateToken,
-  // api.putWebhookSubscription
   async (req, res) => {
     try {
       return await api.putWebhookSubscription(req, res)

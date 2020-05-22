@@ -1,5 +1,11 @@
 const jwt = require('jsonwebtoken')
 
+// config
+const tokenLifespan = {
+  access: '45m',
+  refresh: '9d',
+}
+
 
 // storage
 let refreshTokens = new Array()
@@ -15,8 +21,7 @@ function removeRefreshToken(refreshToken) {
 
 // middleware function for authorization
 function authenticateToken(req, res, next) {
-  const { headers } = req
-  const { authorization } = headers
+  const { headers: { authorization } } = req
   const token = authorization && authorization.split(' ')[1]
   if (!token) return res.sendStatus(401)
 
@@ -30,8 +35,7 @@ function authenticateToken(req, res, next) {
 
 // core token functions
 async function getToken(req, res) {
-  const { checkUser, params = {} } = req
-  const { sid } = params
+  const { checkUser, params: { sid } } = req
 
   if (!sid) return res.sendStatus(401)
   
@@ -43,8 +47,8 @@ async function getToken(req, res) {
   user = reduceUserData(user)
 
   // create a jwt form the fetched valid user
-  const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '12m' })
-  const refreshToken = jwt.sign(user, process.env.REFRESH_TOKEN_SECRET, { expiresIn: '9d' })
+  const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: tokenLifespan.access })
+  const refreshToken = jwt.sign(user, process.env.REFRESH_TOKEN_SECRET, { expiresIn: tokenLifespan.refresh })
   storeRefreshToken(refreshToken)
 
   const payload = {
@@ -55,8 +59,7 @@ async function getToken(req, res) {
 }
 
 async function verifyToken(req, res) {
-  const { headers } = req
-  const { authorization } = headers
+  const { headers: { authorization } } = req
   const token = authorization && authorization.split(' ')[1]
   if (!token) return res.sendStatus(401)
 
@@ -68,10 +71,10 @@ async function verifyToken(req, res) {
 }
 
 async function removeToken(req, res) {
-  const { body = {} } = req
-  const { token: refreshToken } = body
-  const { headers } = req
-  const { authorization } = headers
+  const {
+    body: {token: refreshToken },
+    headers: { authorization },
+  } = req
   const accessToken = authorization && authorization.split(' ')[1]
 
   jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET, (err, accessTokenUser) => {

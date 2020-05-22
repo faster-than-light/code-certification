@@ -69,9 +69,11 @@ const uploadFromTree = (context, tree) => {
     // set the project name and check for files on server
     const { projectName } = getRepoInfo(context.payload)
     context.projectName = projectName
-    const { data = {} } = await fetchProjectFromServer(context).catch(() => ({}))
-    const { response = {} } = data
-    let { code: serverFiles = [] } = response
+    let {
+      data: {
+        response: { code: serverFiles = [] }
+      }
+    } = await fetchProjectFromServer(context).catch(() => ({}))
 
     const thisUploadQueue = currentUploadQueue = new Date().getTime()
 
@@ -191,16 +193,18 @@ const checkTestStatus = (context) => {
       reject()
     }
 
-    const getRunTests = await api.getRunTests({ stlid }).catch(noConnection)
-    const { data } = getRunTests || {}
-    const { response } = data || {}
+    const {
+      getRunTests: {
+        data: { response }
+      }
+    } = await api.getRunTests({ stlid }).catch(noConnection)
     fetchingTest = false
 
     // Fail for any status in the 400's
-    if (getRunTests && response && response.status >= 400 && response.status <= 499) failed()
+    if (response && response.status >= 400 && response.status <= 499) failed()
     
     // Retry failed connections
-    if (!getRunTests || !response) noConnection()
+    if (!response) noConnection()
     else reconnecting = false
 
     // abort if stlid does not match stlid
@@ -292,11 +296,12 @@ const runTests = (context) => {
       console.error(err || new Error('POST /run_tests returned a bad response'))
       reject()
     }
-    const runTests = await api.postTestProject({ projectName: uriEncodeProjectName(projectName) }).catch(runTestsError)
-    if (runTests) {
-      const { stlid } = runTests.data
-      resolve(stlid)
-    }
+    const {
+      runTests: {
+        data: { stlid }
+      }
+    } = await api.postTestProject({ projectName: uriEncodeProjectName(projectName) }).catch(runTestsError)
+    if (stlid) resolve(stlid)
     else runTestsError()
   })
 }
@@ -306,14 +311,22 @@ const fetchResults = async (context) => {
   const api = BugCatcher(bugcatcherUris[context.environment], context.token)
   const { testId: stlid } = context
 
-  let { data: results = {} } = await api.getTestResult({
+  let {
+    data: {
+      results: {
+        test_run: {
+          project = {},
+        }
+      }
+    }
+  } = await api.getTestResult({
     stlid,
     options: {responseType: 'json'}
   }).catch(() => ({}))
-  let { test_run: testRun = {} } = results
-  let { codes = [{}], project = {} } = testRun
-  project = project.name
   
+  if (!project.name) return
+  
+  project = project.name
   return({ project, results })
 }
 

@@ -7,123 +7,122 @@ const bugCatcherApi = nodeBugCatcher(bugcatcherUri)
 
 async function githubWebhook (request) {
   try {
-    const { body, headers } = request
-    const { "x-github-event": githubEvent } = headers
-    const { compare } = body
+    const {
+      body: {
+        compare,
+        head_commit: { tree_id: treeId },
+        ref,
+        repository: { full_name: reposistoryFullName },
+      },
+      headers: { "x-github-event": githubEvent },
+    } = request
 
     // Only process `push` events with a `compare` value
-    if (!compare || !githubEvent || githubEvent !== 'push') return
-    else {
-      const { head_commit: headCommit = {}, ref, repository = {} } = body
-      const { full_name: reposistoryFullName } = repository
-      const { tree_id: treeId } = headCommit
+    if (!compare || !githubEvent || githubEvent !== 'push' || !treeId) return
 
-      if (!treeId) return
+    const successfulWebhookResponse = {"result":"ok"}
 
-      const successfulWebhookResponse = {"result":"ok"}
+    // Upsert the webhook data to prevent multiple tests from firing
+    const scansFindKey = { "webhookBody.compare": compare }
+    // db function
+    const fnUpsertScan = async (db, promise) => {
+      const githubScansCollection = db.collection('githubScans')
+      const savedScan = await githubScansCollection.updateOne(
+        scansFindKey,
+        { $set: {
+          webhookBody: body,
+        }},
+        { upsert: true }
+      ).catch(promise.reject)
 
-      // Upsert the webhook data to prevent multiple tests from firing
-      const scansFindKey = { "webhookBody.compare": compare }
+      if (savedScan) promise.resolve(savedScan)
+      else promise.reject()
+    }
+    mongoConnect(fnUpsertScan)
+
+    // Reponse expected by GitHub
+    const subscriptionQuery = {
+      channel: 'github',
+      ref,
+      repository: reposistoryFullName,
+    }
+
+    // Get a collection of users subscribed to this event
+    // db function
+    const fnGetSubscribers = async (db, promise) => {
+      const data = await db.collection('webhookSubscriptions').find(
+        subscriptionQuery
+      ).toArray().catch(promise.reject)
+      promise.resolve(data)
+    }
+    const subscriberSids = await mongoConnect(fnGetSubscribers).catch(() => [])
+    if (!subscriberSids || !subscriberSids.length) return successfulWebhookResponse
+    
+    // Get an ephemeral GitHub token for each subscriber
+    let subscriberPromises = new Array()
+    subscriberSids.forEach(subscriberSid => {
+      const environment = appEnvironments[subscriberSid['environment']] || 'production'
+      const sid = subscriberSid['sid']
+      bugCatcherApi.setApiUri(bugcatcherUris[environment])
+      bugCatcherApi.setSid(sid)
+      const subscriberPromise = bugCatcherApi.getUserData({ sid }).catch(() => undefined)
+      subscriberPromises.push([subscriberSid, subscriberPromise])
+    })
+    const subscriberResults = await Promise.all(subscriberPromises.map(s => s[1]))
+    const userSubscriptions = subscriberResults.map((s, i) => {
+      if (s && s['data']) return ({
+        ...subscriberPromises[i][0],
+        ...s.data,
+      })
+      else return
+    }).filter(s => s)
+
+    // Run 1 test on BugCatcher and save results as `githubScans.bugcatcherResults`
+    request.user = userSubscriptions.find(s => s['sid'] && s['github_token'])
+    if (!request.user) return
+
+    // At this point, we want to return a response and then finish some operations afterward
+    const asyncOps = async () => {
+      /** @dev This is meant to be executed asyncronously just before returning the response */
+      
+      const testRepo = await github.testRepo(request)
+      const { results: testResults, tree } = testRepo
+
+      /** @todo Email each subscriber */
+
+      // Upsert the results
       // db function
-      const fnUpsertScan = async (db, promise) => {
+      const fnUpsertGithubScans = async (db, promise) => {
         const githubScansCollection = db.collection('githubScans')
-        const savedScan = await githubScansCollection.updateOne(
-          scansFindKey,
+        const savedScan = await githubScansCollection.findOne(
+          scansFindKey
+        ).catch(() => undefined)
+        const updatedScan = await githubScansCollection.updateOne(
+          { _id: savedScan['_id']},
           { $set: {
-            webhookBody: body,
-          }},
-          { upsert: true }
-        ).catch(promise.reject)
+            testResults,
+            tree,
+          }}
+        ).catch(() => undefined)
 
-        if (savedScan) promise.resolve(savedScan)
+        if (updatedScan) promise.resolve(savedScan['_id'])
         else promise.reject()
       }
-      mongoConnect(fnUpsertScan)
+      const savedGithubScan = await mongoConnect(fnUpsertGithubScans).catch(() => undefined)
+      if (!savedGithubScan) return
 
-      // Reponse expected by GitHub
-      const subscriptionQuery = {
-        channel: 'github',
-        ref,
-        repository: reposistoryFullName,
-      }
-
-      // Get a collection of users subscribed to this event
+      // Save updated webhookSubscriptions
       // db function
-      const fnGetSubscribers = async (db, promise) => {
-        const data = await db.collection('webhookSubscriptions').find(
-          subscriptionQuery
-        ).toArray().catch(promise.reject)
-        promise.resolve(data)
+      const fnUpdateWebhookSubscriptions = async (db, promise) => {
+        const webhookSubscriptionsCollection = db.collection('webhookSubscriptions')
+        const webhookSubscriptions = await webhookSubscriptionsCollection.updateMany(
+          subscriptionQuery,
+          { $set: { githubScans_id: savedGithubScan } }
+        ).catch(promise.reject)
+        promise.resolve(webhookSubscriptions)
       }
-      const subscriberSids = await mongoConnect(fnGetSubscribers).catch(() => [])
-      if (!subscriberSids || !subscriberSids.length) return successfulWebhookResponse
-      
-      // Get an ephemeral GitHub token for each subscriber
-      let subscriberPromises = new Array()
-      subscriberSids.forEach(subscriberSid => {
-        const environment = appEnvironments[subscriberSid['environment']] || 'production'
-        const sid = subscriberSid['sid']
-        bugCatcherApi.setApiUri(bugcatcherUris[environment])
-        bugCatcherApi.setSid(sid)
-        const subscriberPromise = bugCatcherApi.getUserData({ sid }).catch(() => undefined)
-        subscriberPromises.push([subscriberSid, subscriberPromise])
-      })
-      const subscriberResults = await Promise.all(subscriberPromises.map(s => s[1]))
-      const userSubscriptions = subscriberResults.map((s, i) => {
-        if (s && s['data']) return ({
-          ...subscriberPromises[i][0],
-          ...s.data,
-        })
-        else return
-      }).filter(s => s)
-
-      // Run 1 test on BugCatcher and save results as `githubScans.bugcatcherResults`
-      request.user = userSubscriptions.find(s => s['sid'] && s['github_token'])
-      if (!request.user) return
-
-      // At this point, we want to return a response and then finish some operations afterward
-      const asyncOps = async () => {
-        /** @dev This is meant to be executed asyncronously just before returning the response */
-        
-        const testRepo = await github.testRepo(request)
-        const { results: testResults, tree } = testRepo
-
-        /** @todo Email each subscriber */
-
-        // Upsert the results
-        // db function
-        const fnUpsertGithubScans = async (db, promise) => {
-          const githubScansCollection = db.collection('githubScans')
-          const savedScan = await githubScansCollection.findOne(
-            scansFindKey
-          ).catch(() => undefined)
-          const updatedScan = await githubScansCollection.updateOne(
-            { _id: savedScan['_id']},
-            { $set: {
-              testResults,
-              tree,
-            }}
-          ).catch(() => undefined)
-
-          if (updatedScan) promise.resolve(savedScan['_id'])
-          else promise.reject()
-        }
-        const savedGithubScan = await mongoConnect(fnUpsertGithubScans).catch(() => undefined)
-        if (!savedGithubScan) return
-
-        // Save updated webhookSubscriptions
-        // db function
-        const fnUpdateWebhookSubscriptions = async (db, promise) => {
-          const webhookSubscriptionsCollection = db.collection('webhookSubscriptions')
-          const webhookSubscriptions = await webhookSubscriptionsCollection.updateMany(
-            subscriptionQuery,
-            { $set: { githubScans_id: savedGithubScan } }
-          ).catch(promise.reject)
-          promise.resolve(webhookSubscriptions)
-        }
-        const webhookSubscriptions = await mongoConnect(fnUpdateWebhookSubscriptions).catch(() => undefined)
-        if (webhookSubscriptions) console.log(`Saved GitHub webhook scan ${savedGithubScan}`)
-      }
+      const webhookSubscriptions = await mongoConnect(fnUpdateWebhookSubscriptions).catch(() => undefined)
+      if (webhookSubscriptions) console.log(`Saved GitHub webhook scan ${savedGithubScan}`)
 
       asyncOps()
       return successfulWebhookResponse
@@ -239,14 +238,14 @@ async function putWebhookSubscription(req, res) {
 async function jwtPutWebhookSubscription(req, res) {
 
   // destructure and validate parameters
-  const { body = {}, params = {}, user } = req
-  const { sid } = user
-  const { ref, repository } = body
-  const { channel, environment } = params
+  const {
+    body: { ref, repository },
+    params: { channel, environment },
+    user,
+    user: { email, sid },
+  } = req
   if (
-    !body 
-    || !params 
-    || !channel 
+    !user
     || !environment 
     || !ref 
     || !repository 
@@ -293,8 +292,6 @@ async function jwtPutWebhookSubscription(req, res) {
     lastScanTreeSha !== createdWebhook['repoTreeSha'] ? createdWebhook['repoTreeSha'] : null
 
   // save subscription data
-  const { email } = user
-
   // db function
   const fnUpsertWebhookSubscription = async (db, promise) => {
     let data = {
@@ -391,14 +388,15 @@ async function deleteWebhookSubscription(request) {
 }
 async function jwtDeleteWebhookSubscription(req, res) {
 
-  // validation
-  const { body = {}, params = {}, user } = req
-  const { ref, repository } = body
-  const { channel, environment } = params
-  const { email } = user
+  // destructure and validate parameters
+  const {
+    body: { ref, repository },
+    params: { channel, environment },
+    user,
+    user: { email },
+  } = req
   if (
-    !body
-    || !channel
+    !channel
     || !email
     || !environment
     || !ref
@@ -483,11 +481,12 @@ async function getWebhookSubscriptions(request) {
   return scans
 }
 async function jwtGetWebhookSubscriptions(req, res) {
-  // validation
-  const { params = {}, user = {} } = req
-  const { channel, environment = appEnvironment } = params
-  const { email } = user
-  if (!params || !user || !channel || !email || !environment) return res.sendStatus(400)
+  // destructure and validate parameters
+  const {
+    params: { channel, environment = appEnvironment },
+    user: { email },
+  } = req
+  if (!channel || !email || !environment) return res.sendStatus(400)
 
   // db function
   const fnGetSubscriptions = async (db, promise) => {
@@ -548,9 +547,8 @@ async function getWebhookScan(request) {
 
 }
 async function jwtGetWebhookScan(req, res) {
-  // validation
-  const { params = {} } = req
-  const { channel, scan } = params
+  // destructure and validate parameters
+  const { params: { channel, scan } } = req
   if (!channel || !scan) return res.sendStatus(400)
 
   // Find the scan
@@ -645,28 +643,29 @@ async function postTestResults (request) {
 }
 async function jwtPostTestResults (req, res) {
   try {
-    // validation
-    const { body = {}, params = {} } = req
-    const { scan } = body
-    const { channel, environment } = params
+  // destructure and validate parameters
+    const {
+      body: {
+        scan,
+        scan: {
+          webhookBody: {
+            compare,
+            ref,
+            repository: { full_name: reposistoryFullName }
+          }
+        },
+      },
+      params: { channel, environment },
+    } = req
     if (
-      !body
-      || !params
-      || !channel
+      !channel
       || !environment
-      || !scan
-    ) return res.sendStatus(400)
-  
-    const { webhookBody } = scan
-    const { compare, ref, repository = {} } = webhookBody || {}
-    const { full_name: reposistoryFullName } = repository
-    if (
-      !webhookBody
       || !compare
       || !ref
       || !reposistoryFullName
-    ) return res.sendStatus(400)
 
+    ) return res.sendStatus(400)
+  
     // Upsert the webhook data to prevent multiple tests from firing
     const scansFindKey = { "webhookBody.compare": compare }
     // db function
