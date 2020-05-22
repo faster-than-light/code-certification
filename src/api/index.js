@@ -4,6 +4,7 @@ const ObjectId = require('mongodb').ObjectId
 const nodeBugCatcher = require('node-bugcatcher')
 const { bugcatcherUri, bugcatcherUris } = require('../../config')
 const bugCatcherApi = nodeBugCatcher(bugcatcherUri)
+const auth = require('../auth')
 
 const badUserError = {
   error: 'invalid user id'
@@ -25,6 +26,12 @@ function testConnection() {
   return mongoConnect(fn)
 }
 
+// get a json web token
+function getToken (req, res) {
+  req.checkUser = checkUser
+  return auth.getToken(req, res)
+}
+
 /**
  * @title putResults
  * @dev saves/updates test results
@@ -33,14 +40,16 @@ function testConnection() {
  * 
  * @returns {string} stlid of test results
  */
-async function putResults(results) {
+async function putResults(req, res) {
+  const results = req.body
+
   // validation
-  if (!results || !results.test_run || !results.test_run.stlid) return
-  if (!results.user || !results.user.sid) return
+  if (!results || !results.test_run || !results.test_run.stlid) return res.sendStatus(400)
+  if (!results.user || !results.user.sid) return res.sendStatus(401)
 
   // verify the user and sid
   let user = await checkUser(results.user)
-  if (!user) throw new Error(`Invalid token for user ${results.user.email}`)
+  if (!user) return res.sendStatus(401)
 
   // add number of files tested
   results.test_run.total_files_tested = results.test_run.codes.length
@@ -300,10 +309,7 @@ async function checkUser(user, environment, returnAllData) {
   if (environment) bugCatcherApi.setApiUri( bugcatcherUris[environment] )
   bugCatcherApi.setSid( user.sid )
   const getUserData = await bugCatcherApi.getUserData( user )
-    .catch((c) => {
-      console.error(c)
-      return undefined
-    })
+    .catch(() =>  undefined)
   if (!getUserData) return
 
   const { data: verifiedUser } = getUserData
@@ -377,17 +383,17 @@ function webhook(request) {
 
 }
 
-async function putWebhookSubscription(request) {
+async function putWebhookSubscription(req, res) {  
   // validation
-  const { body = {}, params = {} } = request
+  const { body = {}, params = {} } = req
   const { sid } = body
   const { environment } = params
-  if (!body || !sid) return badUserError
+  if (!body || !sid) return res.sendStatus(401)
 
-  request.user = await checkUser({sid}, environment, true)
-  if (!request.user) return badUserError
+  req.user = await checkUser({sid}, environment, true)
+  if (!req.user) return res.sendStatus(401)
 
-  return webhooks.putWebhookSubscription(request)
+  return webhooks.putWebhookSubscription(req, res)
 }
 
 async function deleteWebhookSubscription(request) {
@@ -444,19 +450,28 @@ async function postTestResults(request) {
 }
 
 module.exports = {
+  checkUser,
   deleteJobs,
   deleteWebhookSubscription,
   getJobs,
   getPDF,
   getResults,
+  getToken,
   getWebhookScan,
   getWebhookSubscriptions,
+  jwtDeleteWebhookSubscription: webhooks.jwtDeleteWebhookSubscription,
+  jwtGetWebhookScan: webhooks.jwtGetWebhookScan,
+  jwtGetWebhookSubscriptions: webhooks.jwtGetWebhookSubscriptions,
+  jwtPostTestResults: webhooks.jwtPostTestResults,
+  jwtPutWebhookSubscription: webhooks.jwtPutWebhookSubscription,
   postPR,
   postTestResults,
   putJobs,
   putPDF,
   putResults,
   putWebhookSubscription,
+  removeToken: auth.removeToken,
   testConnection,
+  verifyToken: auth.verifyToken,
   webhook,
 }

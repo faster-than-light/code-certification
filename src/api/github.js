@@ -1,29 +1,19 @@
-const { mongoConnect } = require('../mongo')
 const github = require('@actions/github')
 const { Octokit } = require("@octokit/rest")
 const bugcatcher = require('./bugcatcher')
 const { appUrl } = require('../../config')
 const {
-  getRepoInfo,
   passesSeverity,
   statusSetupPending,
-  // statusSetupFailure,
-  // statusSetupFailureRepoMismatch,
-  // statusUploadingSetup,
   statusUploadingPending,
   statusUploadingFailure,
-  // statusTestingSetup,
   statusTestingPending,
   statusTestingFailure,
-  // statusResultsSetup,
   statusResultsPending,
   statusResultsFailure,
   statusResultsSuccess,
   resultsUri,
 } = require('../helpers')
-// const nodeBugCatcher = require('node-bugcatcher')
-// const { appEnvironment, bugcatcherUri } = require('../../config')
-// const bugCatcherApi = nodeBugCatcher(bugcatcherUri)
 
 async function createHook(request) {
   try {
@@ -55,7 +45,10 @@ async function createHook(request) {
       owner,
       repo,
     }
-    const { data } = await octokit.repos.listHooks(payload).catch(() => ({}))
+    const { data } = await octokit.repos.listHooks(payload).catch((c) => {
+      console.error(c)
+      return({})}
+    )
     if (data) {
       const matchingWebhook = data.find(h => h.config.url === url)
       if (matchingWebhook) {
@@ -78,7 +71,7 @@ async function createHook(request) {
     return webhook
   }
   catch(err) {
-    // console.error(err)
+    console.error(err)
     return (err)
   }
 }
