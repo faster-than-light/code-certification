@@ -1,6 +1,6 @@
 {
   "name": "cqc-server",
-  "version": "0.0.22",
+  "version": "0.0.23",
   "repository": "https://github.com/faster-than-light/github-action.git",
   "description": "",
   "main": "index.js",

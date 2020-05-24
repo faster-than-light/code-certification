@@ -172,6 +172,7 @@ module.exports = {
   // putPDF,
   // putResults,
   putWebhookSubscription,
+  refreshToken: auth.refreshToken,
   removeToken: auth.removeToken,
   testConnection,
   verifyToken: auth.verifyToken,

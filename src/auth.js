@@ -47,9 +47,8 @@ async function getToken(req, res) {
   user = reduceUserData(user)
 
   // create a jwt form the fetched valid user
-  const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: tokenLifespan.access })
-  const refreshToken = jwt.sign(user, process.env.REFRESH_TOKEN_SECRET, { expiresIn: tokenLifespan.refresh })
-  storeRefreshToken(refreshToken)
+  const accessToken = createAccessToken(user)
+  const refreshToken = createRefreshToken(user)
 
   const payload = {
     accessToken,
@@ -65,7 +64,6 @@ async function verifyToken(req, res) {
 
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
     if (err) return res.sendStatus(403)
-    console.log({user})
     return res.send("VERIFIED")
   })
 }
@@ -96,8 +94,51 @@ async function removeToken(req, res) {
   })
 }
 
+async function refreshToken(req, res) {
+  let {
+    body: { token: refreshToken },
+  } = req
+  if (!refreshToken) return res.sendStatus(400)
+
+  let refreshTokenUser = await jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET)
+  if (!refreshTokenUser ) return res.sendStatus(403)
+
+  const foundToken = refreshTokens.find(token => token === refreshToken)
+  if (!foundToken) return res.sendStatus(204)
+
+  // remove the refresh token just used
+  removeRefreshToken(refreshToken)
+
+  // create new access token and refresh token to return in response
+  refreshTokenUser = reduceUserData(refreshTokenUser)
+  const accessToken = createAccessToken(refreshTokenUser)
+  refreshToken = createRefreshToken(refreshTokenUser)
+  const response = {
+    accessToken,
+    refreshToken,
+  }
+  return res.send(response)
+
+}
+
 
 // helpers
+function createAccessToken(user) {
+  return jwt.sign(
+    user,
+    process.env.ACCESS_TOKEN_SECRET,
+    { expiresIn: tokenLifespan.access }
+  )
+}
+function createRefreshToken(user) {
+  const refreshToken = jwt.sign(
+    user,
+    process.env.REFRESH_TOKEN_SECRET,
+    { expiresIn: tokenLifespan.refresh }
+  )
+  storeRefreshToken(refreshToken)
+  return refreshToken
+}
 function reduceUserData(user) {
     return {
       email: user.email,
@@ -111,6 +152,7 @@ function reduceUserData(user) {
 module.exports = {
   authenticateToken,
   getToken,
+  refreshToken,
   removeToken,
   verifyToken,
 }

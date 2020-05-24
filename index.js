@@ -42,6 +42,9 @@ app.get('/test/:param1/:param2', async (req, res) => {
 // get a json web token and refresh token from a BugCatcher SID
 app.get('/jwt/:sid', api.getToken)
 
+// get a new access token from a refresh token
+app.post('/jwt/refresh', api.refreshToken)
+
 // verify a jwt
 app.head(
   '/jwt',
