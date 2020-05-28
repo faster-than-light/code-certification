@@ -5,7 +5,7 @@ const express = require('express')
 const app = express()
 const port = process.env.PORT || 3000
 const bodyParser = require('body-parser')
-// const cookieParser = require('cookie-parser')
+const cookieParser = require('cookie-parser')
 const api = require('./src/api')
 const { authenticateToken } = require('./src/auth')
 
@@ -13,9 +13,9 @@ const { authenticateToken } = require('./src/auth')
 app.use(cors({
   credentials: true
 }))
-// app.use(cookieParser())
+app.use(cookieParser())
 app.use(function(req, res, next) {
-  console.log({headers: req.headers})
+  console.log({cookies: req.cookies, headers: req.headers})
   res.header('Access-Control-Allow-Origin', req.headers.origin)
   res.header('Access-Control-Allow-Credentials', true)
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
