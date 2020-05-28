@@ -5,14 +5,25 @@ const express = require('express')
 const app = express()
 const port = process.env.PORT || 3000
 const bodyParser = require('body-parser')
+// const cookieParser = require('cookie-parser')
 const api = require('./src/api')
 const { authenticateToken } = require('./src/auth')
 
 // middleware
+app.use(cors({
+  credentials: true
+}))
+// app.use(cookieParser())
+app.use(function(req, res, next) {
+  console.log({headers: req.headers})
+  res.header('Access-Control-Allow-Origin', req.headers.origin)
+  res.header('Access-Control-Allow-Credentials', true)
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
+  return next()
+})
 app.use(express.json())
 app.use(bodyParser.json({limit: '150mb', extended: true}))
 app.use(bodyParser.urlencoded({limit: '150mb', extended: true}))
-app.use(cors())
 
 // error handling
 apiError = (err, res) => {
@@ -42,7 +53,7 @@ app.get('/test/:param1/:param2', async (req, res) => {
 // get a json web token and refresh token from a BugCatcher SID
 app.get('/jwt/:sid', api.getToken)
 
-// get a new access token from a refresh token
+// get new tokens from a refresh token
 app.post('/jwt/refresh', api.refreshToken)
 
 // verify a jwt
@@ -61,34 +72,17 @@ app.delete(
 
 // add webhook subscription (via JWT)
 app.post(
-  '/webhook/subscription/jwt/:channel/:environment',
-  authenticateToken,
-  api.jwtPutWebhookSubscription
-)
-
-// add webhook subscription (via SID)
-app.post(
   '/webhook/subscription/:channel/:environment',
-  async (req, res) => {
-    try {
-      return await api.putWebhookSubscription(req, res)
-    } catch (err) { return apiError(err, res) }
-  }
+  authenticateToken,
+  api.putWebhookSubscription
 )
 
 // delete webhook subscription (via JWT)
 app.delete(
-  '/webhook/subscription/jwt/:channel/:environment', 
+  '/webhook/subscription/:channel/:environment', 
   authenticateToken,
-  api.jwtDeleteWebhookSubscription
+  api.deleteWebhookSubscription
 )
-
-// delete webhook subscription (via SID)
-app.delete('/webhook/subscription/:channel/:environment', async (req, res) => {
-  try {
-    res.send(await api.deleteWebhookSubscription(req))
-  } catch (err) { return apiError(err, res) }
-})
 
 // webhooks
 app.post('/webhook/:channel', async (req, res) => {
@@ -99,46 +93,23 @@ app.post('/webhook/:channel', async (req, res) => {
 
 // save test results (via JWT)
 app.post(
-  '/results/jwt/:channel/:environment',
+  '/results/:channel/:environment',
   authenticateToken,
-  api.jwtPostTestResults
+  api.postTestResults
 )
-
-// save test results(via SID)
-app.post('/results/:channel/:environment', async (req, res) => {
-  try {
-    res.send(await api.postTestResults(req))
-  } catch (err) { return apiError(err, res) }
-})
-
-// get webhook scan by bugcatcher test_id (via SID)
-app.get('/webhook/scan/:channel/:scan', async (req, res) => {
-  try {
-    res.send(
-      await api.getWebhookScan(req)
-    )
-  } catch (err) { return apiError(err, res) }
-})
 
 // get webhook scan by bugcatcher test_id (via JWT)
 app.get(
-  '/webhook/scan/jwt/:channel/:scan',
+  '/webhook/scan/:channel/:scan',
   authenticateToken,
-  api.jwtGetWebhookScan
+  api.getWebhookScan
 )
-
-// get webhook subscriptions (via SID)
-app.get('/webhook/subscriptions/:channel/:environment', async (req, res) => {
-  try {
-    res.send(await api.getWebhookSubscriptions(req))
-  } catch (err) { return apiError(err, res) }
-})
 
 // get webhook subscriptions (via JWT)
 app.get(
-  '/webhook/subscriptions/jwt/:channel/:environment',
+  '/webhook/subscriptions/:channel/:environment',
   authenticateToken,
-  api.jwtGetWebhookSubscriptions
+  api.getWebhookSubscriptions
 )
 
 // init

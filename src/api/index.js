@@ -85,93 +85,23 @@ function webhook(request) {
 
 }
 
-async function putWebhookSubscription(req, res) {  
-  // validation
-  const { body = {}, params = {} } = req
-  const { sid } = body
-  const { environment } = params
-  if (!body || !sid) return res.sendStatus(401)
-
-  req.user = await checkUser({sid}, environment, true)
-  if (!req.user) return res.sendStatus(401)
-
-  return webhooks.putWebhookSubscription(req, res)
-}
-
-async function deleteWebhookSubscription(request) {
-  // validation
-  const { body = {}, params = {} } = request
-  const { sid } = body
-  const { environment } = params
-  if (!body || !sid) return badUserError
-
-  request.user = await checkUser({sid}, environment, true)
-  if (!request.user) return badUserError
-
-  return webhooks.deleteWebhookSubscription(request)
-}
-
-async function getWebhookSubscriptions(request) {
-  // validation
-  const { headers = {}, params = {} } = request
-  const { "ftl-sid": sid } = headers
-  const { environment } = params
-  if (!sid) return
-  request.user = await checkUser({sid}, environment, true)
-
-  return webhooks.getWebhookSubscriptions(request)
-}
-
-async function getWebhookScan(request) {
-  // validation
-  const { headers = {} } = request
-  const { "ftl-sid": sid } = headers
-
-  if (!headers || !sid) return badUserError
-
-  // require any valid user
-  /** @todo Require the user to be subscribed to the scan parameters */
-  request.user = await checkUser({sid}, null, true)
-  if (!request.user) return badUserError
-
-  return webhooks.getWebhookScan(request)
-}
-
-async function postTestResults(request) {
-  // validation
-  const { body = {}, params = {} } = request
-  const { scan, sid } = body
-  const { channel, environment } = params
-  if (!body || !sid) return badUserError
-  if (!params || !scan || !channel || !environment) return 
-
-  request.user = await checkUser({sid}, environment, true)
-  if (!request.user) return badUserError
-  
-  return webhooks.postTestResults(request)
-}
 
 module.exports = {
   checkUser,
   // deleteJobs,
-  deleteWebhookSubscription,
   // getJobs,
   // getPDF,
   // getResults,
   getToken,
-  getWebhookScan,
-  getWebhookSubscriptions,
-  jwtDeleteWebhookSubscription: webhooks.jwtDeleteWebhookSubscription,
-  jwtGetWebhookScan: webhooks.jwtGetWebhookScan,
-  jwtGetWebhookSubscriptions: webhooks.jwtGetWebhookSubscriptions,
-  jwtPostTestResults: webhooks.jwtPostTestResults,
-  jwtPutWebhookSubscription: webhooks.jwtPutWebhookSubscription,
+  deleteWebhookSubscription: webhooks.jwtDeleteWebhookSubscription,
+  getWebhookScan: webhooks.jwtGetWebhookScan,
+  getWebhookSubscriptions: webhooks.jwtGetWebhookSubscriptions,
+  postTestResults: webhooks.jwtPostTestResults,
+  putWebhookSubscription: webhooks.jwtPutWebhookSubscription,
   // postPR,
-  postTestResults,
   // putJobs,
   // putPDF,
   // putResults,
-  putWebhookSubscription,
   refreshToken: auth.refreshToken,
   removeToken: auth.removeToken,
   testConnection,

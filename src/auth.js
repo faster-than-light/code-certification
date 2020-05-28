@@ -28,7 +28,7 @@ function authenticateToken(req, res, next) {
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
     if (err) return res.sendStatus(403)
     req.user = user
-    next()
+    return next()
   })
 }
 
@@ -36,7 +36,6 @@ function authenticateToken(req, res, next) {
 // core token functions
 async function getToken(req, res) {
   const { checkUser, params: { sid } } = req
-
   if (!sid) return res.sendStatus(401)
   
   let user = await checkUser({sid}, null, true)
@@ -50,10 +49,26 @@ async function getToken(req, res) {
   const accessToken = createAccessToken(user)
   const refreshToken = createRefreshToken(user)
 
+  const date = new Date()
+  const expires = date.getTime() + 30*60000
+  const expiresDate = new Date(expires)
+
   const payload = {
     accessToken,
-    refreshToken,
+    expires: expiresDate,
   }
+
+  // return the refresh token as an httponly cookie
+  res.cookie(
+    'ftl-refresh-jwt',
+    refreshToken,
+    {
+      maxAge: 10000*60000,
+      httpOnly: true,
+      // secure: true,
+      sameSite: "None",
+    }
+  )
   return res.send(payload)
 }
 
