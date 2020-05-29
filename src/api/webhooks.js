@@ -524,7 +524,7 @@ async function jwtGetWebhookSubscriptions(req, res) {
     githubScans_id: undefined,
     scan: s,
   }))
-  return res.send(scans)
+  res.send(scans)
 }
 
 async function getWebhookScan(request) {

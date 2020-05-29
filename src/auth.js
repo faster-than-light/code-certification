@@ -2,11 +2,19 @@ const jwt = require('jsonwebtoken')
 
 // config
 const tokenLifespan = {
-  access: '45m',
-  refresh: '9d',
+  access: {
+    milliseconds: 10*60*1000,
+    unitMeasurement: '10m',
+  },
+  refresh: {
+    milliseconds: 9*24*60*60*1000,
+    unitMeasurement: '9d',
+  },
 }
+const jwTokenCookieName = 'ftl-jwt'
+const jwRefreshTokenCookieName = 'ftl-refresh-jwt'
 
-
+/** @todo Store encrypted refresh tokens in the db */
 // storage
 let refreshTokens = new Array()
 
@@ -21,19 +29,52 @@ function removeRefreshToken(refreshToken) {
 
 // middleware function for authorization
 function authenticateToken(req, res, next) {
-  const { headers: { authorization } } = req
-  const token = authorization && authorization.split(' ')[1]
-  if (!token) return res.sendStatus(401)
+  const {
+    cookies: {
+      [jwTokenCookieName]: token,
+      [jwRefreshTokenCookieName]: refreshToken,
+    }
+  } = req
+  if (!token && !refreshToken) return res.sendStatus(403)
 
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
-    if (err) return res.sendStatus(403)
-    req.user = user
+    if (err) {
+      // the access token cannot be verified so we validate the refresh token
+      jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, (err, refreshTokenUser) => {
+        if (err) return res.sendStatus(403)
+        req.user = refreshTokenUser
+      })
+    }
+    else req.user = user
+    
+    if (req.user) {
+      // create a fresh token
+      const accessToken = createAccessToken( reduceUserData(req.user) )
+
+      // return the the access token as an HttpOnly cookie
+      res = setJwtCookie(res, jwTokenCookieName, accessToken)
+    }
     return next()
   })
 }
 
 
 // core token functions
+function setJwtCookie(res, cookieName, token) {
+  let expires = new Date()
+  expires.setMilliseconds(cookieName === jwTokenCookieName ? tokenLifespan.access.milliseconds : tokenLifespan.refresh.milliseconds)
+  res.cookie(
+    cookieName,
+    token,
+    {
+      expires,
+      httpOnly: true,
+      secure: process.env.FTL_ENV !== 'local',
+    }
+  )
+  return res
+}
+
 async function getToken(req, res) {
   const { checkUser, params: { sid } } = req
   if (!sid) return res.sendStatus(401)
@@ -45,36 +86,22 @@ async function getToken(req, res) {
   user.sid = sid
   user = reduceUserData(user)
 
-  // create a jwt form the fetched valid user
+  // create a jwt from the valid fetched user
   const accessToken = createAccessToken(user)
   const refreshToken = createRefreshToken(user)
 
-  const date = new Date()
-  const expires = date.getTime() + 30*60000
-  const expiresDate = new Date(expires)
-
-  const payload = {
-    accessToken,
-    expires: expiresDate,
-  }
-
-  // return the refresh token as an httponly cookie
-  res.cookie(
-    'ftl-refresh-jwt',
-    refreshToken,
-    {
-      maxAge: 10000*60000,
-      httpOnly: true,
-      // secure: true,
-      sameSite: "None",
-    }
-  )
-  return res.send(payload)
+  // return the refresh tokens as httponly cookies
+  res = setJwtCookie(res, jwTokenCookieName, accessToken)
+  res = setJwtCookie(res, jwRefreshTokenCookieName, refreshToken)
+  return res.end()
 }
 
 async function verifyToken(req, res) {
-  const { headers: { authorization } } = req
-  const token = authorization && authorization.split(' ')[1]
+  const {
+    cookies: {
+      [jwTokenCookieName]: token,
+    }
+  } = req
   if (!token) return res.sendStatus(401)
 
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
@@ -85,10 +112,11 @@ async function verifyToken(req, res) {
 
 async function removeToken(req, res) {
   const {
-    body: {token: refreshToken },
-    headers: { authorization },
+    cookies: {
+      [jwTokenCookieName]: accessToken,
+      [jwRefreshTokenCookieName]: refreshToken,
+    }
   } = req
-  const accessToken = authorization && authorization.split(' ')[1]
 
   jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET, (err, accessTokenUser) => {
     if (err || !accessTokenUser) return res.sendStatus(403)
@@ -104,36 +132,11 @@ async function removeToken(req, res) {
       if (!foundToken) return res.sendStatus(204)
 
       removeRefreshToken(refreshToken)
+      res = setJwtCookie(res, jwTokenCookieName, null)
+      res = setJwtCookie(res, jwRefreshTokenCookieName, null)
       return res.status(200).send('DELETED')
     })
   })
-}
-
-async function refreshToken(req, res) {
-  let {
-    body: { token: refreshToken },
-  } = req
-  if (!refreshToken) return res.sendStatus(400)
-
-  let refreshTokenUser = await jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET)
-  if (!refreshTokenUser ) return res.sendStatus(403)
-
-  const foundToken = refreshTokens.find(token => token === refreshToken)
-  if (!foundToken) return res.sendStatus(204)
-
-  // remove the refresh token just used
-  removeRefreshToken(refreshToken)
-
-  // create new access token and refresh token to return in response
-  refreshTokenUser = reduceUserData(refreshTokenUser)
-  const accessToken = createAccessToken(refreshTokenUser)
-  refreshToken = createRefreshToken(refreshTokenUser)
-  const response = {
-    accessToken,
-    refreshToken,
-  }
-  return res.send(response)
-
 }
 
 
@@ -142,14 +145,14 @@ function createAccessToken(user) {
   return jwt.sign(
     user,
     process.env.ACCESS_TOKEN_SECRET,
-    { expiresIn: tokenLifespan.access }
+    { expiresIn: tokenLifespan.access.unitMeasurement }
   )
 }
 function createRefreshToken(user) {
   const refreshToken = jwt.sign(
     user,
     process.env.REFRESH_TOKEN_SECRET,
-    { expiresIn: tokenLifespan.refresh }
+    { expiresIn: tokenLifespan.refresh.unitMeasurement }
   )
   storeRefreshToken(refreshToken)
   return refreshToken
@@ -167,7 +170,7 @@ function reduceUserData(user) {
 module.exports = {
   authenticateToken,
   getToken,
-  refreshToken,
+  // refreshToken,
   removeToken,
   verifyToken,
 }

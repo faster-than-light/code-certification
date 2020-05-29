@@ -10,18 +10,18 @@ const api = require('./src/api')
 const { authenticateToken } = require('./src/auth')
 
 // middleware
-app.use(cors({
-  credentials: true
-}))
-app.use(cookieParser())
-app.use(function(req, res, next) {
-  console.log({cookies: req.cookies, headers: req.headers})
-  res.header('Access-Control-Allow-Origin', req.headers.origin)
-  res.header('Access-Control-Allow-Credentials', true)
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
-  return next()
-})
 app.use(express.json())
+app.use(
+  cors({
+    origin: [
+      'http://localhost:3000',
+      'https://bugcatcher.fasterthanlight.dev',
+      'https://staging.tiger.sohotokenlabs.com',
+    ],
+    credentials: true
+  })
+)
+app.use(cookieParser())
 app.use(bodyParser.json({limit: '150mb', extended: true}))
 app.use(bodyParser.urlencoded({limit: '150mb', extended: true}))
 
@@ -54,7 +54,7 @@ app.get('/test/:param1/:param2', async (req, res) => {
 app.get('/jwt/:sid', api.getToken)
 
 // get new tokens from a refresh token
-app.post('/jwt/refresh', api.refreshToken)
+// app.post('/jwt/refresh', api.refreshToken)
 
 // verify a jwt
 app.head(
@@ -70,14 +70,14 @@ app.delete(
   api.removeToken
 )
 
-// add webhook subscription (via JWT)
+// add webhook subscription
 app.post(
   '/webhook/subscription/:channel/:environment',
   authenticateToken,
   api.putWebhookSubscription
 )
 
-// delete webhook subscription (via JWT)
+// delete webhook subscription
 app.delete(
   '/webhook/subscription/:channel/:environment', 
   authenticateToken,
@@ -91,21 +91,21 @@ app.post('/webhook/:channel', async (req, res) => {
   } catch (err) { return apiError(err, res) }
 })
 
-// save test results (via JWT)
+// save test results
 app.post(
   '/results/:channel/:environment',
   authenticateToken,
   api.postTestResults
 )
 
-// get webhook scan by bugcatcher test_id (via JWT)
+// get webhook scan by bugcatcher test_id
 app.get(
   '/webhook/scan/:channel/:scan',
   authenticateToken,
   api.getWebhookScan
 )
 
-// get webhook subscriptions (via JWT)
+// get webhook subscriptions
 app.get(
   '/webhook/subscriptions/:channel/:environment',
   authenticateToken,

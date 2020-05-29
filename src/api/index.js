@@ -102,7 +102,7 @@ module.exports = {
   // putJobs,
   // putPDF,
   // putResults,
-  refreshToken: auth.refreshToken,
+  // refreshToken: auth.refreshToken,
   removeToken: auth.removeToken,
   testConnection,
   verifyToken: auth.verifyToken,
