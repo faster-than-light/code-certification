@@ -60,9 +60,13 @@ function authenticateToken(req, res, next) {
 
 
 // core token functions
-function setJwtCookie(res, cookieName, token) {
+function setJwtCookie(res, cookieName, token, expire) {
   let expires = new Date()
-  expires.setMilliseconds(cookieName === jwTokenCookieName ? tokenLifespan.access.milliseconds : tokenLifespan.refresh.milliseconds)
+  const milliseconds = expire ? -1000 : (
+    cookieName === jwTokenCookieName ? tokenLifespan.access.milliseconds
+    : tokenLifespan.refresh.milliseconds
+  )
+  expires.setMilliseconds(milliseconds)
   res.cookie(
     cookieName,
     token,
@@ -132,8 +136,8 @@ async function removeToken(req, res) {
       if (!foundToken) return res.sendStatus(204)
 
       removeRefreshToken(refreshToken)
-      res = setJwtCookie(res, jwTokenCookieName, null)
-      res = setJwtCookie(res, jwRefreshTokenCookieName, null)
+      res = setJwtCookie(res, jwTokenCookieName, '', true)
+      res = setJwtCookie(res, jwRefreshTokenCookieName, '', true)
       return res.status(200).send('DELETED')
     })
   })
