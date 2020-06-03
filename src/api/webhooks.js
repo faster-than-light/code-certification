@@ -554,10 +554,13 @@ async function jwtGetWebhookScan(req, res) {
   // Find the scan
   // db function
   const dbFnGetScan = async (db, promise) => {
+    let _id
+    try { _id = ObjectId(scan) }
+    catch { }
     const githubScansCollection = db.collection('githubScans')
     const githubScan = await githubScansCollection
       .findOne({
-        _id: ObjectId(scan),
+        _id,
       }).catch(c => { console.error(c); return null })
     promise.resolve(githubScan)
   }
