@@ -558,7 +558,7 @@ async function jwtGetWebhookScan(req, res) {
     const githubScan = await githubScansCollection
       .findOne({
         _id: ObjectId(scan),
-      })
+      }).catch(c => { console.error(c); return null })
     promise.resolve(githubScan)
   }
   const fetchedScan = await mongoConnect(dbFnGetScan)
