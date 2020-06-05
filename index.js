@@ -17,6 +17,7 @@ app.use(
       'http://localhost:3000',
       'https://bugcatcher.fasterthanlight.dev',
       'https://staging.tiger.sohotokenlabs.com',
+      'https://staging-sat.firebaseapp.com',
     ],
     credentials: true
   })
