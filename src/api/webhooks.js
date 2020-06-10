@@ -14,10 +14,12 @@ async function githubWebhook (request) {
     } = request
     const {
       compare,
-      head_commit: { tree_id: treeId },
+      head_commit = {},
       ref,
-      repository: { full_name: reposistoryFullName },
+      repository = {},
     } = body
+    const { tree_id: treeId } = head_commit
+    const { full_name: reposistoryFullName } = repository
 
     // Only process `push` events with a `compare` value
     if (!compare || !githubEvent || githubEvent !== 'push' || !treeId) return
