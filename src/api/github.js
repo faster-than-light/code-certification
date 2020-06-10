@@ -13,7 +13,7 @@ const {
   statusResultsFailure,
   statusResultsSuccess,
   resultsUri,
-} = require('../helpers')
+} = require('../util')
 
 async function createHook(request) {
   try {
@@ -123,6 +123,7 @@ async function testRepo (request) {
     const { compare } = body
     const { environment, github_token: githubToken, sid } = user
 
+    console.log({environment, githubToken, sid})
     // Only process `push` events with a `compare` value
     if (
       !user ||

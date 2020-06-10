@@ -7,7 +7,7 @@ const {
   getRepoInfo,
   statusTestingPending,
   uriEncodeProjectName,
-} = require('../helpers')
+} = require('../util')
 
 /** Constants */
 const uploadsPerSecond = 10,
@@ -69,11 +69,9 @@ const uploadFromTree = (context, tree) => {
     // set the project name and check for files on server
     const { projectName } = getRepoInfo(context.payload)
     context.projectName = projectName
-    let {
-      data: {
-        response: { code: serverFiles = [] }
-      }
-    } = await fetchProjectFromServer(context).catch(() => ({}))
+    const { data = {} } = await fetchProjectFromServer(context).catch(() => ({}))
+    const { response = {} } = data
+    let { code: serverFiles = [] } = response
 
     const thisUploadQueue = currentUploadQueue = new Date().getTime()
 
@@ -296,11 +294,11 @@ const runTests = (context) => {
       console.error(err || new Error('POST /run_tests returned a bad response'))
       reject()
     }
-    const {
-      runTests: {
-        data: { stlid }
-      }
-    } = await api.postTestProject({ projectName: uriEncodeProjectName(projectName) }).catch(runTestsError)
+    const { runTests = {} } = await api.postTestProject({ projectName: uriEncodeProjectName(projectName) })
+      .catch(() => ({}))
+    const { data = {} } = runTests
+    const { stlid } = data
+    console.log({stlid})
     if (stlid) resolve(stlid)
     else runTestsError()
   })

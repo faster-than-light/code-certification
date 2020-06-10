@@ -92,6 +92,11 @@ module.exports = {
     pendingWithPercent: 'pendingWithPercent',
     setup: 'setup',
     success: 'success',
-  }
+  },
+
+  smtpAccount: {
+    email: 'webapp@fasterthanlight.dev',
+    password: '2i3kv9LRCFPpD74IIbW9uEl1t6eQCV97dTSS',
+  },
   
 }

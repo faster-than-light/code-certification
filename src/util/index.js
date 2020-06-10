@@ -1,4 +1,4 @@
-const { labels, resultsUri, statusStates, statusSteps } = require('../config')
+const { labels, resultsUri, statusStates, statusSteps } = require('../../config')
 
 const getRepoInfo = payload => {
   const { head_commit, ref, repository, sha: payloadSha } = payload

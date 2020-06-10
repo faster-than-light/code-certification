@@ -1,5 +1,6 @@
 const { mongoConnect } = require('../mongo')
 const ObjectId = require('mongodb').ObjectId
+const { sendMail } = require('../util/nodemailer')
 const github = require('./github')
 const nodeBugCatcher = require('node-bugcatcher')
 const { appEnvironment, appEnvironments, bugcatcherUri, bugcatcherUris } = require('../../config')
@@ -8,14 +9,15 @@ const bugCatcherApi = nodeBugCatcher(bugcatcherUri)
 async function githubWebhook (request) {
   try {
     const {
-      body: {
-        compare,
-        head_commit: { tree_id: treeId },
-        ref,
-        repository: { full_name: reposistoryFullName },
-      },
+      body = {},
       headers: { "x-github-event": githubEvent },
     } = request
+    const {
+      compare,
+      head_commit: { tree_id: treeId },
+      ref,
+      repository: { full_name: reposistoryFullName },
+    } = body
 
     // Only process `push` events with a `compare` value
     if (!compare || !githubEvent || githubEvent !== 'push' || !treeId) return
@@ -78,17 +80,27 @@ async function githubWebhook (request) {
     }).filter(s => s)
 
     // Run 1 test on BugCatcher and save results as `githubScans.bugcatcherResults`
-    request.user = userSubscriptions.find(s => s['sid'] && s['github_token'])
+    request.user = userSubscriptions.find(s => s['sid'] && s['github_token'] && s['environment'] === appEnvironment)
     if (!request.user) return
 
     // At this point, we want to return a response and then finish some operations afterward
     const asyncOps = async () => {
       /** @dev This is meant to be executed asyncronously just before returning the response */
       
+      bugCatcherApi.setSid(request.user['sid'])
       const testRepo = await github.testRepo(request)
       const { results: testResults, tree } = testRepo
 
       /** @todo Email each subscriber */
+      userSubscriptions.forEach(user => {
+        const subject = `BugCatcher Scan found ${0} issues in ${reposistoryFullName}`
+        const emailText = 'email message goes here'
+        sendMail(
+          user['email'],
+          subject,
+          emailText
+        )
+      })
 
       // Upsert the results
       // db function
@@ -124,10 +136,11 @@ async function githubWebhook (request) {
       const webhookSubscriptions = await mongoConnect(fnUpdateWebhookSubscriptions).catch(() => undefined)
       if (webhookSubscriptions) console.log(`Saved GitHub webhook scan ${savedGithubScan}`)
 
-      asyncOps()
-      return successfulWebhookResponse
-
     }
+
+    asyncOps()
+    return successfulWebhookResponse
+
   }
   catch(err) {
     console.error(err)

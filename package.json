@@ -1,6 +1,6 @@
 {
   "name": "cqc-server",
-  "version": "0.0.26",
+  "version": "0.0.27",
   "repository": "https://github.com/faster-than-light/github-action.git",
   "description": "",
   "main": "index.js",
@@ -8,7 +8,7 @@
     "start": "node index.js",
     "start:prod": "FTL_ENV=production node index.js",
     "start:devbat": "FTL_ENV=devbat PORT=3001 node index.js",
-    "start:local": "FTL_ENV=local PORT=3001 nodemon index.js",
+    "start:local": "FTL_ENV=local PORT=3001 nodemon --inspect index.js",
     "start:staging": "FTL_ENV=staging PORT=3001 node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -26,7 +26,8 @@
     "js-sha256": "0.9.0",
     "jsonwebtoken": "^8.5.1",
     "mongodb": "3.5.7",
-    "node-bugcatcher": "1.0.35"
+    "node-bugcatcher": "1.0.35",
+    "nodemailer": "^6.4.8"
   },
   "devDependencies": {
     "nodemon": "^2.0.4"

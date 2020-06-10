@@ -25,6 +25,10 @@ app.use(
 app.use(cookieParser())
 app.use(bodyParser.json({limit: '150mb', extended: true}))
 app.use(bodyParser.urlencoded({limit: '150mb', extended: true}))
+// app.use((req, res, next) => {
+//   console.log(req['method'], req['url'])
+//   next()
+// })
 
 // error handling
 apiError = (err, res) => {

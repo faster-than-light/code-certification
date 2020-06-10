@@ -14,6 +14,8 @@ const mongoUri = `mongodb://${dbUser}:${encodeURIComponent(dbPassword)}@${dbUri}
 
 module.exports = {
   mongoConnect: (fn) => {
+    // console.dir(fn)
+    // console.log(`fn => `, fn)
     return new Promise(async (resolve, reject) => {
       try {
         const mongo = new MongoClient(mongoUri, { useUnifiedTopology: true })
