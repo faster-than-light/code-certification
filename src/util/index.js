@@ -1,4 +1,5 @@
 const { labels, resultsUri, statusStates, statusSteps } = require('../../config')
+const { sendMail } = require('./nodemailer')
 
 const getRepoInfo = payload => {
   const { head_commit, ref, repository, sha: payloadSha } = payload
@@ -254,6 +255,7 @@ module.exports = {
   statusResultsFailure,
   statusResultsSuccess,
   resultsUri,
+  sendMail,
   uriDecodeProjectName,
   uriEncodeProjectName,
 }

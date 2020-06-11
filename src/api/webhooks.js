@@ -1,6 +1,6 @@
 const { mongoConnect } = require('../mongo')
 const ObjectId = require('mongodb').ObjectId
-const { sendMail } = require('../util/nodemailer')
+const { sendMail } = require('../util')
 const github = require('./github')
 const nodeBugCatcher = require('node-bugcatcher')
 const { appEnvironment, appEnvironments, bugcatcherUri, bugcatcherUris } = require('../../config')
@@ -94,15 +94,15 @@ async function githubWebhook (request) {
       const { results: testResults, tree } = testRepo
 
       /** @todo Email each subscriber */
-      userSubscriptions.forEach(user => {
-        const subject = `BugCatcher Scan found ${0} issues in ${reposistoryFullName}`
-        const emailText = 'email message goes here'
-        sendMail(
-          user['email'],
-          subject,
-          emailText
-        )
-      })
+      // userSubscriptions.forEach(user => {
+      //   const subject = `BugCatcher Scan found ${0} issues in ${reposistoryFullName}`
+      //   const emailText = 'email message goes here'
+      //   sendMail(
+      //     user['email'],
+      //     subject,
+      //     emailText
+      //   )
+      // })
 
       // Upsert the results
       // db function
