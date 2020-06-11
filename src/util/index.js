@@ -156,7 +156,7 @@ const statusResultsPending = context => {
 }
 
 const statusResultsFailure = context => {
-  const { resultsMatrix } = context
+  const { resultsMatrix = {} } = context
   let hits = []
   Object.entries(resultsMatrix).forEach(entry => {
     const [name, value] = entry

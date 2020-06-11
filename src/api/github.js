@@ -123,7 +123,6 @@ async function testRepo (request) {
     const { compare } = body
     const { environment, github_token: githubToken, sid } = user
 
-    console.log({environment, githubToken, sid})
     // Only process `push` events with a `compare` value
     if (
       !user ||
@@ -178,8 +177,9 @@ async function testRepo (request) {
 
       /** Fetch the results */
       statusResultsPending(context)
-      const { results } = await bugcatcher.fetchResults(context)
-        .catch(() => ({}))
+      const fetchResults = await bugcatcher.fetchResults(context)
+        .catch(() => null)
+      const { results } = fetchResults
       if (results && results.test_run_result) {
         context.results = results
         let resultsMatrix = {

@@ -191,11 +191,7 @@ const checkTestStatus = (context) => {
       reject()
     }
 
-    const {
-      getRunTests: {
-        data: { response }
-      }
-    } = await api.getRunTests({ stlid }).catch(noConnection)
+    const { data: { response } } = await api.getRunTests({ stlid }).catch(noConnection)
     fetchingTest = false
 
     // Fail for any status in the 400's
@@ -294,11 +290,13 @@ const runTests = (context) => {
       console.error(err || new Error('POST /run_tests returned a bad response'))
       reject()
     }
-    const { runTests = {} } = await api.postTestProject({ projectName: uriEncodeProjectName(projectName) })
-      .catch(() => ({}))
-    const { data = {} } = runTests
+    const { data = {} } = await api.postTestProject({ projectName: uriEncodeProjectName(projectName) })
+      .catch((c) => {
+        console.error(c)
+        return {}
+      })
     const { stlid } = data
-    console.log({stlid})
+
     if (stlid) resolve(stlid)
     else runTestsError()
   })
@@ -309,18 +307,15 @@ const fetchResults = async (context) => {
   const api = BugCatcher(bugcatcherUris[context.environment], context.token)
   const { testId: stlid } = context
 
-  let {
-    data: {
-      results: {
-        test_run: {
-          project = {},
-        }
-      }
-    }
-  } = await api.getTestResult({
+  const { data: results } = await api.getTestResult({
     stlid,
     options: {responseType: 'json'}
   }).catch(() => ({}))
+  let {
+    test_run: {
+      project = {},
+    }
+  } = results
   
   if (!project.name) return
   

@@ -95,8 +95,8 @@ module.exports = {
   },
 
   smtpAccount: {
-    email: 'webapp@fasterthanlight.dev',
-    password: '2i3kv9LRCFPpD74IIbW9uEl1t6eQCV97dTSS',
+    email: process.env['NODEMAILER_EMAIL'],
+    password: process.env['NODEMAILER_PASSWORD'],
   },
   
 }

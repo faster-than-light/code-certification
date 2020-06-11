@@ -5,7 +5,7 @@ const auth = {
   user: smtpAccount['email'],
   pass: smtpAccount['password'],
 }
-console.log({auth})
+
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth,
