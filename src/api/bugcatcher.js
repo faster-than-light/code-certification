@@ -235,7 +235,7 @@ const checkTestStatus = (context) => {
         (retryAttempts <= retryAttemptsAllowed)
       ) {
         retryAttempts++
-        console.log(`Test Status : Request #${retryAttempts} at ${lastPercentComplete}% complete`)
+        console.log(`Test Status : Request #${retryAttempts} at ${lastPercentComplete}% complete for test ${stlid}`)
         statusCheck = setTimeout(
           () => { resolve(checkTestStatus(context, stlid)) },
           retryIntervalMilliseconds

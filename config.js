@@ -32,7 +32,21 @@ module.exports = {
   bugcatcherUri: bugcatcherUris[appEnvironment],
   bugcatcherUris,
 
-  resultsUri: "https://bugcatcher.fasterthanlight.dev/results/:stlid",
+  resultsUri: ({
+    development: 'https://staging.tiger.sohotokenlabs.com/results?test=',
+    devbat: 'http://localhost:3000/results?test=',
+    local: 'http://localhost:3000/results?test=',
+    staging: 'https://staging.tiger.sohotokenlabs.com/results?test=',
+    production: 'https://bugcatcher.fasterthanlight.dev/results?test=',
+  })[appEnvironment],
+  
+  scanResultsUri: ({
+    development: 'https://staging.tiger.sohotokenlabs.com/results?scan=',
+    devbat: 'http://localhost:3000/results?scan=',
+    local: 'http://localhost:3000/results?scan=',
+    staging: 'https://staging.tiger.sohotokenlabs.com/results?scan=',
+    production: 'https://bugcatcher.fasterthanlight.dev/results?scan=',
+  })[appEnvironment],
   
   labels: {
     setup: {

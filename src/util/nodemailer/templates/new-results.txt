@@ -1,0 +1,6 @@
+BugCatcher Scan Complete
+
+Hello {{name}},
+There are new results for the {{branch}} branch of the {{project}} repo ready for your review.
+
+You can view the results at {{resultsUrl}}
