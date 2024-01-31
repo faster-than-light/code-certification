@@ -27,7 +27,7 @@
     "jsonwebtoken": "8.5.1",
     "mongodb": "3.5.7",
     "node-bugcatcher": "1.0.35",
-    "nodemailer": "6.4.8",
+    "nodemailer": "6.9.8",
     "nodemailer-handlebars": "1.0.1"
   },
   "devDependencies": {
